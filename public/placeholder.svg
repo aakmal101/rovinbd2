@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <pattern id="p" width="40" height="40" patternUnits="userSpaceOnUse">
+      <rect width="40" height="40" fill="#fef3c7"/>
+      <path d="M20 8c4 0 8 4 8 8s-4 8-8 8-8-4-8-8 4-8 8-8z M20 14c-1.5 0-3 1.5-3 3s1.5 3 3 3 3-1.5 3-3-1.5-3-3-3z" fill="#f97316" opacity="0.4"/>
+    </pattern>
+  </defs>
+  <rect width="400" height="400" fill="url(#p)"/>
+  <text x="200" y="210" font-family="Georgia, serif" font-size="28" fill="#c2410c" text-anchor="middle" font-weight="bold">Bandana</text>
+</svg>

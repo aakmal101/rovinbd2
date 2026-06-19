@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Get-ChildItem 'C:\\\\Users\\\\USER\\\\Downloads\\\\rovinbd\\\\src' -Recurse -File | Measure-Object\\).Count)"
+    ]
+  }
+}
