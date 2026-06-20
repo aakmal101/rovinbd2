@@ -1,7 +1,8 @@
 # Deploying Rovin Bandana to Vercel
 
-This app uses **Vercel Postgres** (database) and **Vercel Blob** (image uploads).
-Both have free tiers. The local JSON file storage has been removed.
+This app uses **Vercel Postgres** (database) and commits uploaded images
+straight to this **GitHub repo** (`public/uploads/`), which Vercel auto-deploys
+on push. The local JSON file storage has been removed.
 
 ## One-time setup
 
@@ -25,18 +26,20 @@ git push -u origin main
 - Click **Connect** to attach it to this project.
 - This automatically adds `POSTGRES_URL` (and related) env vars.
 
-### 4. Create the Blob store (for image uploads)
-- Same **Storage** tab → **Create** → **Blob**.
-- **Connect** it to the project.
-- This adds `BLOB_READ_WRITE_TOKEN`.
+### 4. Connect the Git repo (for image uploads to auto-deploy)
+- Project → **Settings → Git** → connect this same GitHub repo, if not already connected.
+- Without this, the upload route can still commit files to GitHub, but nothing will redeploy to publish them.
 
-### 5. Add the admin env vars
+### 5. Add the admin + GitHub env vars
 Project → **Settings → Environment Variables**, add (for Production + Preview):
 | Name | Value |
 |------|-------|
 | `ADMIN_USERNAME` | your admin login |
 | `ADMIN_PASSWORD` | a strong password |
 | `AUTH_SECRET` | a long random string (32+ chars) |
+| `GITHUB_TOKEN` | a GitHub Personal Access Token with "Contents: Read and write" on this repo |
+| `GITHUB_REPO` | `owner/repo`, e.g. `fardiiin99/rovinbd` |
+| `GITHUB_BRANCH` | `main` |
 
 ### 6. Deploy
 - Push to `main` (or click **Deploy**). First page load auto-creates the tables and seeds sample data.
@@ -45,12 +48,12 @@ Project → **Settings → Environment Variables**, add (for Production + Previe
 After linking the project once:
 ```bash
 vercel link          # link this folder to the Vercel project
-vercel env pull .env.local   # pulls POSTGRES_URL + BLOB_READ_WRITE_TOKEN
+vercel env pull .env.local   # pulls POSTGRES_URL + GITHUB_TOKEN etc.
 npm run dev
 ```
 Add `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `AUTH_SECRET` to `.env.local` too.
 
 ## Notes
-- The hero image at `/public/hero-banner.jpg` ships with the repo. New uploads go to Blob storage and return full `https://...blob.vercel-storage.com/...` URLs.
+- The hero image at `/public/hero-banner.jpg` ships with the repo. New admin uploads are committed to `public/uploads/` in this GitHub repo via the API and return a `/uploads/...` path; the change goes live once Vercel's Git-triggered deploy finishes (~1-2 min).
 - Tables + seed data are created automatically on first DB access (`ensureSchema` in `src/lib/db.ts`).
 - To reset the store, drop the tables in the Vercel Postgres dashboard; they'll be recreated and reseeded on next load.

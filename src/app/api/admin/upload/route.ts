@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 import { getSession } from '@/lib/auth';
 
 export async function POST(req: Request) {
@@ -11,15 +10,38 @@ export async function POST(req: Request) {
 
   const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '');
   const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext) ? ext : 'png';
-  const name = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO;
+  const branch = process.env.GITHUB_BRANCH || 'main';
+  if (!token || !repo) {
     return NextResponse.json(
-      { error: 'Image storage not configured. Set BLOB_READ_WRITE_TOKEN (Vercel Blob).' },
+      { error: 'Image storage not configured. Set GITHUB_TOKEN and GITHUB_REPO.' },
       { status: 500 },
     );
   }
 
-  const blob = await put(name, file, { access: 'public', addRandomSuffix: false });
-  return NextResponse.json({ url: blob.url });
+  const content = Buffer.from(await file.arrayBuffer()).toString('base64');
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/public/uploads/${filename}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: `Add uploaded image ${filename}`,
+      content,
+      branch,
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    return NextResponse.json({ error: `GitHub commit failed (${res.status}): ${detail}` }, { status: 502 });
+  }
+
+  // Committed to the repo — Vercel's Git auto-deploy will publish it live in ~1-2 min.
+  return NextResponse.json({ url: `/uploads/${filename}`, pending: true });
 }

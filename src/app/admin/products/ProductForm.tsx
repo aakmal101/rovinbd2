@@ -28,15 +28,18 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [preview, setPreview] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   const onFile = async (file: File) => {
+    setPreview(URL.createObjectURL(file));
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
     const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
     const data = await res.json();
     setUploading(false);
-    if (res.ok) setForm((f) => ({ ...f, image: data.url }));
+    if (res.ok) { setForm((f) => ({ ...f, image: data.url })); setPending(true); }
     else setError(data.error || 'Upload failed');
   };
 
@@ -86,10 +89,11 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
         <div className="sm:col-span-2">
           <label className="label">Image</label>
           <div className="flex items-center gap-4">
-            <img src={form.image} alt="" className="w-24 h-24 object-cover rounded border border-stone-200" />
+            <img src={preview || form.image} alt="" className="w-24 h-24 object-cover rounded border border-stone-200" />
             <div>
               <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
               {uploading && <div className="text-sm text-stone-500 mt-1">Uploading…</div>}
+              {pending && !uploading && <div className="text-xs text-amber-600 mt-1">Committed — live on the site in ~1–2 min after the auto-deploy finishes.</div>}
               <div className="text-xs text-stone-500 mt-1">Or paste URL:</div>
               <input className="input mt-1" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
             </div>

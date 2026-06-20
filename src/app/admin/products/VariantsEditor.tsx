@@ -14,6 +14,7 @@ export default function VariantsEditor({
   onChange: (next: ProductVariant[]) => void;
 }) {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
 
   const update = (id: string, patch: Partial<ProductVariant>) => {
     onChange(variants.map((v) => (v.id === id ? { ...v, ...patch } : v)));
@@ -26,6 +27,7 @@ export default function VariantsEditor({
   };
 
   const onFile = async (id: string, file: File) => {
+    setPreviews((p) => ({ ...p, [id]: URL.createObjectURL(file) }));
     setUploadingId(id);
     const fd = new FormData();
     fd.append('file', file);
@@ -51,11 +53,12 @@ export default function VariantsEditor({
           {variants.map((v) => (
             <div key={v.id} className="border border-stone-200 rounded p-3 flex gap-3 items-start">
               <div className="shrink-0">
-                <img src={v.image} alt="" className="w-16 h-16 object-cover rounded bg-stone-100" />
+                <img src={previews[v.id] || v.image} alt="" className="w-16 h-16 object-cover rounded bg-stone-100" />
                 <label className="block mt-1 text-xs text-brand-600 cursor-pointer hover:text-brand-700">
                   {uploadingId === v.id ? 'Uploading…' : 'Change'}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(v.id, e.target.files[0])} />
                 </label>
+                {previews[v.id] && uploadingId !== v.id && <div className="text-[10px] text-amber-600 mt-0.5 max-w-16">Live in ~1–2 min</div>}
               </div>
               <div className="flex-1 grid grid-cols-2 gap-2">
                 <div className="col-span-2">

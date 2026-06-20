@@ -70,15 +70,18 @@ function TileEditor({ initial, onClose }: { initial: CategoryTile; onClose: () =
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   const onFile = async (file: File) => {
+    setPreview(URL.createObjectURL(file));
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
     const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
     const data = await res.json();
     setUploading(false);
-    if (res.ok) setForm({ ...form, image: data.url });
+    if (res.ok) { setForm({ ...form, image: data.url }); setPending(true); }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -150,12 +153,13 @@ function TileEditor({ initial, onClose }: { initial: CategoryTile; onClose: () =
           <label className="label">Image</label>
           <div className="flex items-start gap-3">
             <div className="w-24 h-24 rounded border border-stone-200 overflow-hidden flex-shrink-0" style={{ backgroundColor: form.bgColor }}>
-              <img src={form.image} alt="" className="w-full h-full object-cover" />
+              <img src={preview || form.image} alt="" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1">
               <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
               <input className="input mt-2" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
               {uploading && <div className="text-xs text-stone-500 mt-1">Uploading…</div>}
+              {pending && !uploading && <div className="text-xs text-amber-600 mt-1">Committed — live on the site in ~1–2 min after the auto-deploy finishes.</div>}
             </div>
           </div>
         </div>

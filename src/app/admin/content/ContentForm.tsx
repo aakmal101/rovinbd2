@@ -9,15 +9,18 @@ export default function ContentForm({ initial }: { initial: SiteContent }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  const [heroPending, setHeroPending] = useState(false);
 
   const onHeroFile = async (file: File) => {
+    setHeroPreview(URL.createObjectURL(file));
     setUploading(true);
     const fd = new FormData();
     fd.append('file', file);
     const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
     const data = await res.json();
     setUploading(false);
-    if (res.ok) setForm({ ...form, heroImage: data.url });
+    if (res.ok) { setForm({ ...form, heroImage: data.url }); setHeroPending(true); }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -47,7 +50,7 @@ export default function ContentForm({ initial }: { initial: SiteContent }) {
           <label className="label">Hero image</label>
           <div className="flex items-start gap-4">
             <div className="w-40 h-24 rounded border border-stone-200 overflow-hidden bg-stone-100 flex-shrink-0">
-              <img src={form.heroImage} alt="Hero preview" className="w-full h-full object-cover" />
+              <img src={heroPreview || form.heroImage} alt="Hero preview" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 space-y-2">
               <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onHeroFile(e.target.files[0])} />
@@ -58,6 +61,7 @@ export default function ContentForm({ initial }: { initial: SiteContent }) {
                 placeholder="/hero-banner.jpg"
               />
               {uploading && <div className="text-xs text-stone-500">Uploading…</div>}
+              {heroPending && !uploading && <div className="text-xs text-amber-600">Committed — live on the site in ~1–2 min after the auto-deploy finishes.</div>}
               <p className="text-xs text-stone-500">Recommended: 1920×840 (16:7) or wider.</p>
             </div>
           </div>
