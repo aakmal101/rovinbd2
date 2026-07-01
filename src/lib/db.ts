@@ -18,7 +18,7 @@ export type Product = {
   category: string;
   featured: boolean;
   variants: ProductVariant[];
-  variantStyle: 'image' | 'size';
+  variantStyle?: 'image' | 'size';
   createdAt: number;
 };
 

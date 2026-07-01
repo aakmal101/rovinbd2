@@ -25,6 +25,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     name: body.name, description: body.description, price: Number(body.price) || 0,
     stock: Number(body.stock) || 0, image: body.image, category: body.category, featured: !!body.featured,
     variants: sanitizeVariants(body.variants),
+    variantStyle: body.variantStyle === 'size' ? 'size' : 'image',
   });
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(updated);

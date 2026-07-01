@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     stock: Number(body.stock) || 0, image: body.image || '/placeholder.svg',
     category: body.category || 'classic', featured: !!body.featured,
     variants: sanitizeVariants(body.variants),
+    variantStyle: body.variantStyle === 'size' ? 'size' : 'image',
   });
   return NextResponse.json(p);
 }
