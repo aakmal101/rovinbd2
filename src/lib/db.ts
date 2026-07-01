@@ -515,6 +515,19 @@ export const db = {
       link=${t.link}, image=${t.image}, bg_color=${t.bgColor}, "order"=${t.order} WHERE id=${id}`;
     return t;
   },
+  async createCategoryTile(tile: Omit<CategoryTile, 'id'>): Promise<CategoryTile> {
+    await ready();
+    const id = uid('ct');
+    const { rows } = await sql`SELECT COALESCE(MAX("order"), 0) + 1 AS next FROM category_tiles`;
+    const order = tile.order ?? (rows[0]?.next ?? 1);
+    await sql`INSERT INTO category_tiles (id, kind, label, sublabel, link, image, bg_color, "order")
+      VALUES (${id}, ${tile.kind}, ${tile.label}, ${tile.sublabel}, ${tile.link}, ${tile.image}, ${tile.bgColor}, ${order})`;
+    return { ...tile, id, order };
+  },
+  async deleteCategoryTile(id: string): Promise<void> {
+    await ready();
+    await sql`DELETE FROM category_tiles WHERE id = ${id}`;
+  },
 
   // content
   async getContent(): Promise<SiteContent> {
