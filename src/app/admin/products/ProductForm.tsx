@@ -16,6 +16,7 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
     image: product?.image || '/placeholder.svg',
     category: product?.category || categories[0]?.value || 'classic',
     featured: product?.featured ?? false,
+    variantStyle: (product?.variantStyle ?? 'image') as 'image' | 'size',
   });
   const [variants, setVariants] = useState<ProductVariant[]>(product?.variants || []);
 
@@ -102,6 +103,28 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
       </div>
       <div className="pt-2 border-t border-stone-200">
         <VariantsEditor variants={variants} onChange={setVariants} />
+        {variants.length > 0 && (
+          <div className="mt-4">
+            <label className="label">Variant display</label>
+            <div className="flex gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, variantStyle: 'image' })}
+                className={`px-4 py-2 rounded-md border text-sm transition ${form.variantStyle === 'image' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'}`}
+              >
+                Image swatches
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, variantStyle: 'size' })}
+                className={`px-4 py-2 rounded-md border text-sm transition ${form.variantStyle === 'size' ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300 hover:border-stone-500'}`}
+              >
+                Size buttons (S / M / L / XL)
+              </button>
+            </div>
+            <p className="text-xs text-stone-500 mt-1">Size buttons shows variant names as text pills — no images needed.</p>
+          </div>
+        )}
       </div>
       {error && <div className="text-sm text-red-600">{error}</div>}
       <div className="flex gap-3">

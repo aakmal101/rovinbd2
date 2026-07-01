@@ -18,6 +18,7 @@ export type Product = {
   category: string;
   featured: boolean;
   variants: ProductVariant[];
+  variantStyle: 'image' | 'size';
   createdAt: number;
 };
 
@@ -135,6 +136,7 @@ function rowToProduct(r: any): Product {
     id: r.id, slug: r.slug, name: r.name, description: r.description,
     price: Number(r.price), stock: Number(r.stock), image: r.image,
     category: r.category, featured: !!r.featured, variants,
+    variantStyle: (r.variant_style as 'image' | 'size') || 'image',
     createdAt: Number(r.created_at),
   };
 }
@@ -211,6 +213,7 @@ async function ensureSchema() {
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_zone text DEFAULT 'inside_dhaka'`;
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_number integer`;
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS variants jsonb DEFAULT '[]'::jsonb`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS variant_style text DEFAULT 'image'`;
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_order_at bigint`;
   // Backfill: set last_order_at = created_at where null, then take max from orders if any newer
   await sql`UPDATE customers SET last_order_at = created_at WHERE last_order_at IS NULL`;
@@ -324,9 +327,10 @@ export const db = {
     const id = uid('p');
     const createdAt = Date.now();
     const variants = input.variants || [];
-    await sql`INSERT INTO products (id, slug, name, description, price, stock, image, category, featured, variants, created_at)
-      VALUES (${id}, ${slug}, ${input.name}, ${input.description}, ${input.price}, ${input.stock}, ${input.image}, ${input.category}, ${input.featured}, ${JSON.stringify(variants)}::jsonb, ${createdAt})`;
-    return { ...input, variants, slug, id, createdAt };
+    const variantStyle = input.variantStyle || 'image';
+    await sql`INSERT INTO products (id, slug, name, description, price, stock, image, category, featured, variants, variant_style, created_at)
+      VALUES (${id}, ${slug}, ${input.name}, ${input.description}, ${input.price}, ${input.stock}, ${input.image}, ${input.category}, ${input.featured}, ${JSON.stringify(variants)}::jsonb, ${variantStyle}, ${createdAt})`;
+    return { ...input, variants, variantStyle, slug, id, createdAt };
   },
   async updateProduct(id: string, patch: Partial<Product>): Promise<Product | undefined> {
     await ready();
@@ -334,7 +338,7 @@ export const db = {
     if (!cur) return undefined;
     const p = { ...cur, ...patch, id };
     await sql`UPDATE products SET slug=${p.slug}, name=${p.name}, description=${p.description}, price=${p.price},
-      stock=${p.stock}, image=${p.image}, category=${p.category}, featured=${p.featured}, variants=${JSON.stringify(p.variants || [])}::jsonb WHERE id=${id}`;
+      stock=${p.stock}, image=${p.image}, category=${p.category}, featured=${p.featured}, variants=${JSON.stringify(p.variants || [])}::jsonb, variant_style=${p.variantStyle || 'image'} WHERE id=${id}`;
     return p;
   },
   async deleteProduct(id: string): Promise<boolean> {

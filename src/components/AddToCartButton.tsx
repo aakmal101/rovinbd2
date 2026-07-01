@@ -88,17 +88,37 @@ export default function AddToCartButton({
     setTimeout(() => setAdded(false), 1500);
   };
 
+  const isSizeVariant = product.variantStyle === 'size';
+
   return (
     <div className="space-y-4">
       {hasVariants && (
         <div>
           <label className="text-sm font-medium text-stone-700 block mb-2">
-            {selectedVariant ? <>Selected: <span className="font-semibold">{selectedVariant.name}</span></> : 'Choose a style'}
+            {isSizeVariant
+              ? (selectedVariant ? <>Size: <span className="font-semibold">{selectedVariant.name}</span></> : 'Choose a size')
+              : (selectedVariant ? <>Selected: <span className="font-semibold">{selectedVariant.name}</span></> : 'Choose a style')}
           </label>
           <div className="flex flex-wrap gap-2">
             {product.variants.map((v) => {
               const isActive = selectedVariantId === v.id;
               const empty = v.stock === 0;
+              if (isSizeVariant) {
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => !empty && setSelectedVariantId(v.id)}
+                    disabled={empty}
+                    title={empty ? `${v.name} (out of stock)` : v.name}
+                    className={`min-w-[3rem] px-4 py-2 rounded-md border-2 text-sm font-semibold transition ${
+                      isActive ? 'border-brand-600 bg-brand-600 text-white' : 'border-stone-300 bg-white text-stone-800 hover:border-stone-500'
+                    } ${empty ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
+                  >
+                    {v.name}
+                  </button>
+                );
+              }
               return (
                 <button
                   key={v.id}
@@ -132,7 +152,7 @@ export default function AddToCartButton({
         disabled={outOfStock || mustPickVariant}
         className="btn btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {outOfStock ? 'Out of stock' : mustPickVariant ? 'Choose a style' : added ? 'Added to cart ✓' : 'Add to Cart'}
+        {outOfStock ? 'Out of stock' : mustPickVariant ? (isSizeVariant ? 'Choose a size' : 'Choose a style') : added ? 'Added to cart ✓' : 'Add to Cart'}
       </button>
     </div>
   );
