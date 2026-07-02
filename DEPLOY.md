@@ -1,6 +1,6 @@
 # Deploying Rovin Bandana to Vercel
 
-This app uses **Vercel Postgres** (database) and commits uploaded images
+This app uses **Supabase Postgres** (database) and commits uploaded images
 straight to this **GitHub repo** (`public/uploads/`), which Vercel auto-deploys
 on push. The local JSON file storage has been removed.
 
@@ -21,10 +21,12 @@ git push -u origin main
 - Go to https://vercel.com/new
 - Import the GitHub repo (or run `vercel` from this folder to link without GitHub).
 
-### 3. Create the Postgres database
-- In your Vercel project → **Storage** tab → **Create Database** → **Postgres** (Neon).
-- Click **Connect** to attach it to this project.
-- This automatically adds `POSTGRES_URL` (and related) env vars.
+### 3. Create the Supabase database
+- Go to https://supabase.com/dashboard → **New project**.
+- Once it's provisioned, go to **Project Settings → Database → Connection string**
+  and copy the **Connection pooling** URI (Transaction mode, port 6543) —
+  this is the one to use for serverless/Vercel deployments.
+- Add it to your Vercel project as the `POSTGRES_URL` env var (see step 5).
 
 ### 4. Connect the Git repo (for image uploads to auto-deploy)
 - Project → **Settings → Git** → connect this same GitHub repo, if not already connected.
@@ -37,6 +39,7 @@ Project → **Settings → Environment Variables**, add (for Production + Previe
 | `ADMIN_USERNAME` | your admin login |
 | `ADMIN_PASSWORD` | a strong password |
 | `AUTH_SECRET` | a long random string (32+ chars) |
+| `POSTGRES_URL` | the Supabase connection pooling URI from step 3 |
 | `GITHUB_TOKEN` | a GitHub Personal Access Token with "Contents: Read and write" on this repo |
 | `GITHUB_REPO` | `owner/repo`, e.g. `fardiiin99/rovinbd` |
 | `GITHUB_BRANCH` | `main` |
@@ -45,15 +48,13 @@ Project → **Settings → Environment Variables**, add (for Production + Previe
 - Push to `main` (or click **Deploy**). First page load auto-creates the tables and seeds sample data.
 
 ## Local development against the cloud DB
-After linking the project once:
+Copy `.env.example` to `.env.local` and fill in `POSTGRES_URL` (Supabase connection
+pooling URI), `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `AUTH_SECRET`, then:
 ```bash
-vercel link          # link this folder to the Vercel project
-vercel env pull .env.local   # pulls POSTGRES_URL + GITHUB_TOKEN etc.
 npm run dev
 ```
-Add `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `AUTH_SECRET` to `.env.local` too.
 
 ## Notes
 - The hero image at `/public/hero-banner.jpg` ships with the repo. New admin uploads are committed to `public/uploads/` in this GitHub repo via the API and return a `/uploads/...` path; the change goes live once Vercel's Git-triggered deploy finishes (~1-2 min).
 - Tables + seed data are created automatically on first DB access (`ensureSchema` in `src/lib/db.ts`).
-- To reset the store, drop the tables in the Vercel Postgres dashboard; they'll be recreated and reseeded on next load.
+- To reset the store, drop the tables in the Supabase **Table Editor** (or via SQL Editor); they'll be recreated and reseeded on next load.
