@@ -48,9 +48,6 @@ export default function ProductView({
             </>
           )}
         </div>
-        <div className="mt-6">
-          <AddToCartButton product={product} onVariantSelect={setSelectedVariant} />
-        </div>
         {siblings.length > 0 && (
           <div className="mt-6">
             <div className="text-xs uppercase tracking-wider text-stone-500 mb-3">Other {categoryLabel}</div>
@@ -73,6 +70,9 @@ export default function ProductView({
             </div>
           </div>
         )}
+        <div className="mt-6">
+          <AddToCartButton product={product} onVariantSelect={setSelectedVariant} />
+        </div>
       </div>
     </div>
   );
