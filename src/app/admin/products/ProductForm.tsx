@@ -75,7 +75,11 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
           <input type="number" min={0} required className="input disabled:bg-stone-100" disabled={variants.length > 0} value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} />
         </div>
         <div><label className="label">Category</label>
-          <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+          <select className="input" value={form.category} onChange={(e) => {
+            const cat = e.target.value;
+            const isAcid = cat.toLowerCase().replace(/\s+/g, '-').includes('acid');
+            setForm((f) => ({ ...f, category: cat, variantStyle: isAcid && f.variantStyle === 'image' ? 'size' : f.variantStyle }));
+          }}>
             {options.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -102,7 +106,7 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
         </div>
       </div>
       <div className="pt-2 border-t border-stone-200">
-        <VariantsEditor variants={variants} onChange={setVariants} />
+        <VariantsEditor variants={variants} onChange={setVariants} variantStyle={form.variantStyle} />
         {variants.length > 0 && (
           <div className="mt-4">
             <label className="label">Variant display</label>

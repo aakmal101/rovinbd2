@@ -9,10 +9,13 @@ function makeId() {
 export default function VariantsEditor({
   variants,
   onChange,
+  variantStyle = 'image',
 }: {
   variants: ProductVariant[];
   onChange: (next: ProductVariant[]) => void;
+  variantStyle?: 'image' | 'size';
 }) {
+  const isSizeMode = variantStyle === 'size';
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, string>>({});
 
@@ -41,38 +44,48 @@ export default function VariantsEditor({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <div className="font-medium">Variants</div>
-          <div className="text-xs text-stone-500">Add color/style options. When you add variants, the base stock field is ignored — each variant has its own stock.</div>
+          <div className="font-medium">{isSizeMode ? 'Sizes' : 'Variants'}</div>
+          <div className="text-xs text-stone-500">
+            {isSizeMode
+              ? 'Add sizes (S, M, L, XL). Each size has its own stock quantity.'
+              : 'Add color/style options. When you add variants, the base stock field is ignored — each variant has its own stock.'}
+          </div>
         </div>
-        <button type="button" onClick={add} className="btn btn-outline text-sm">+ Add variant</button>
+        <button type="button" onClick={add} className="btn btn-outline text-sm">+ Add {isSizeMode ? 'size' : 'variant'}</button>
       </div>
       {variants.length === 0 ? (
-        <div className="text-sm text-stone-500 italic py-2">No variants — customers buy the base product directly.</div>
+        <div className="text-sm text-stone-500 italic py-2">
+          {isSizeMode ? 'No sizes yet — click "Add size" to add S, M, L, XL.' : 'No variants — customers buy the base product directly.'}
+        </div>
       ) : (
         <div className="space-y-3">
           {variants.map((v) => (
             <div key={v.id} className="border border-stone-200 rounded p-3 flex gap-3 items-start">
-              <div className="shrink-0">
-                <img src={previews[v.id] || v.image} alt="" className="w-16 h-16 object-cover rounded bg-stone-100" />
-                <label className="block mt-1 text-xs text-brand-600 cursor-pointer hover:text-brand-700">
-                  {uploadingId === v.id ? 'Uploading…' : 'Change'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(v.id, e.target.files[0])} />
-                </label>
-                {previews[v.id] && uploadingId !== v.id && <div className="text-[10px] text-amber-600 mt-0.5 max-w-16">Live in ~1–2 min</div>}
-              </div>
+              {!isSizeMode && (
+                <div className="shrink-0">
+                  <img src={previews[v.id] || v.image} alt="" className="w-16 h-16 object-cover rounded bg-stone-100" />
+                  <label className="block mt-1 text-xs text-brand-600 cursor-pointer hover:text-brand-700">
+                    {uploadingId === v.id ? 'Uploading…' : 'Change'}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(v.id, e.target.files[0])} />
+                  </label>
+                  {previews[v.id] && uploadingId !== v.id && <div className="text-[10px] text-amber-600 mt-0.5 max-w-16">Live in ~1–2 min</div>}
+                </div>
+              )}
               <div className="flex-1 grid grid-cols-2 gap-2">
-                <div className="col-span-2">
-                  <label className="text-xs text-stone-600">Name (e.g. "Leopard print")</label>
-                  <input className="input" value={v.name} onChange={(e) => update(v.id, { name: e.target.value })} placeholder="Variant name" />
+                <div className={isSizeMode ? '' : 'col-span-2'}>
+                  <label className="text-xs text-stone-600">{isSizeMode ? 'Size (S / M / L / XL)' : 'Name (e.g. "Leopard print")'}</label>
+                  <input className="input" value={v.name} onChange={(e) => update(v.id, { name: e.target.value })} placeholder={isSizeMode ? 'e.g. S' : 'Variant name'} />
                 </div>
                 <div>
                   <label className="text-xs text-stone-600">Stock</label>
                   <input type="number" min={0} className="input" value={v.stock} onChange={(e) => update(v.id, { stock: Number(e.target.value) || 0 })} />
                 </div>
-                <div>
-                  <label className="text-xs text-stone-600">Image URL</label>
-                  <input className="input" value={v.image} onChange={(e) => update(v.id, { image: e.target.value })} />
-                </div>
+                {!isSizeMode && (
+                  <div>
+                    <label className="text-xs text-stone-600">Image URL</label>
+                    <input className="input" value={v.image} onChange={(e) => update(v.id, { image: e.target.value })} />
+                  </div>
+                )}
               </div>
               <button type="button" onClick={() => remove(v.id)} className="text-stone-400 hover:text-red-600 p-1" aria-label="Remove variant">✕</button>
             </div>

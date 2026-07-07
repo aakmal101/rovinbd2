@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { createClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/auth';
 
 export async function POST(req: Request) {
@@ -13,10 +13,18 @@ export async function POST(req: Request) {
   const safeExt = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext) ? ext : 'png';
   const filename = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
 
-  const blob = await put(filename, file, {
-    access: 'public',
-    token: process.env.BLOB_READ_WRITE_TOKEN,
-  });
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+  );
 
-  return NextResponse.json({ url: blob.url });
+  const arrayBuffer = await file.arrayBuffer();
+  const { error } = await supabase.storage
+    .from('images')
+    .upload(filename, arrayBuffer, { contentType: file.type, upsert: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const { data } = supabase.storage.from('images').getPublicUrl(filename);
+  return NextResponse.json({ url: data.publicUrl });
 }
