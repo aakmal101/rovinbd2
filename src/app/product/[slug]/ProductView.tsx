@@ -52,21 +52,28 @@ export default function ProductView({
           <div className="mt-6">
             <div className="text-xs uppercase tracking-wider text-stone-500 mb-3">Other {categoryLabel}</div>
             <div className="grid grid-cols-4 gap-2">
-              {siblings.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/product/${s.slug}`}
-                  className="group block rounded-md border border-stone-200 hover:border-brand-600 hover:ring-2 hover:ring-brand-200 transition overflow-hidden"
-                  title={s.name}
-                >
-                  <div className="aspect-square bg-stone-100">
-                    <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="px-1 py-1 text-[11px] leading-tight text-stone-700 group-hover:text-brand-700 truncate text-center">
-                    {s.name}
-                  </div>
-                </Link>
-              ))}
+              {[product, ...siblings].map((s) => {
+                const isCurrent = s.id === product.id;
+                return (
+                  <Link
+                    key={s.id}
+                    href={`/product/${s.slug}`}
+                    className={`group block rounded-md border-2 transition overflow-hidden ${
+                      isCurrent
+                        ? 'border-brand-600 ring-2 ring-brand-200 pointer-events-none'
+                        : 'border-stone-200 hover:border-brand-600 hover:ring-2 hover:ring-brand-200'
+                    }`}
+                    title={s.name}
+                  >
+                    <div className="aspect-square bg-stone-100">
+                      <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className={`px-1 py-1 text-[11px] leading-tight truncate text-center ${isCurrent ? 'text-brand-700 font-semibold' : 'text-stone-700 group-hover:text-brand-700'}`}>
+                      {s.name}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
