@@ -17,7 +17,9 @@ export default function ProductView({
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const hasVariants = product.variants.length > 0;
 
-  const displayImage = selectedVariant?.image || product.image;
+  const displayImage = product.variantStyle === 'size'
+    ? product.image
+    : (selectedVariant?.image || product.image);
   const displayStock = hasVariants
     ? (selectedVariant ? selectedVariant.stock : product.variants.reduce((s, v) => s + v.stock, 0))
     : product.stock;
