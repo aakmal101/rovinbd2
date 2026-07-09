@@ -4,6 +4,7 @@ import { db } from './db';
 
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+const ADMIN_SMS_PHONE = process.env.ADMIN_SMS_PHONE || '';
 
 function fmt(amount: number): string {
   return `৳${amount.toLocaleString('en-BD')}`;
@@ -65,9 +66,26 @@ export async function notifySmsCustomer(order: Order): Promise<void> {
   });
 }
 
+export async function notifySmsAdmin(order: Order): Promise<void> {
+  if (!ADMIN_SMS_PHONE) return;
+  const itemLines = order.items
+    .map((i) => `${i.name}${i.variantName ? ` (${i.variantName})` : ''} x${i.qty}`)
+    .join(', ');
+  const message =
+    `New Order #${order.orderNumber} - Rovin.\n` +
+    `Customer: ${order.customerName} (${order.customerPhone})\n` +
+    `Address: ${order.shippingAddress}, ${order.city}\n` +
+    `Items: ${itemLines}\n` +
+    `Total: ${fmt(order.total)} (COD)`;
+
+  const result = await sendSMS(ADMIN_SMS_PHONE, message);
+  if (!result.ok) console.error('Admin SMS failed:', result.error);
+}
+
 export async function notifyOrderPlaced(order: Order): Promise<void> {
   await Promise.all([
     notifyTelegram(order),
     notifySmsCustomer(order),
+    notifySmsAdmin(order),
   ]);
 }
