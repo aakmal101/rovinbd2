@@ -1,4 +1,6 @@
 import type { Order } from './db';
+import { sendSMS } from './sms';
+import { db } from './db';
 
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
@@ -41,6 +43,31 @@ export async function notifyTelegram(order: Order): Promise<void> {
   }
 }
 
+export async function notifySmsCustomer(order: Order): Promise<void> {
+  const firstName = order.customerName.trim().split(/\s+/)[0];
+  const itemLines = order.items
+    .map((i) => `${i.name}${i.variantName ? ` (${i.variantName})` : ''} x${i.qty}`)
+    .join(', ');
+  const message =
+    `Hi ${firstName}, your Rovin. order #${order.orderNumber} is confirmed!\n` +
+    `Items: ${itemLines}\n` +
+    `Total: ${fmt(order.total)} (Cash on Delivery)\n` +
+    `We'll notify you once dispatched. Thank you!`;
+
+  const result = await sendSMS(order.customerPhone, message);
+  if (!result.ok) console.error('Customer SMS failed:', result.error);
+  await db.logSms({
+    customerId: order.customerId,
+    phone: order.customerPhone,
+    message,
+    status: result.ok ? 'sent' : 'failed',
+    error: result.ok ? undefined : result.error,
+  });
+}
+
 export async function notifyOrderPlaced(order: Order): Promise<void> {
-  await notifyTelegram(order);
+  await Promise.all([
+    notifyTelegram(order),
+    notifySmsCustomer(order),
+  ]);
 }
