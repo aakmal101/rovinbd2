@@ -50,6 +50,7 @@ export type Order = {
   status: 'pending' | 'dispatched' | 'received' | 'returned';
   paymentMethod: 'cod' | 'bank_transfer';
   deliveryZone: 'inside_dhaka' | 'outside_dhaka';
+  pathaoConsignmentId?: string;
   createdAt: number;
 };
 
@@ -157,7 +158,9 @@ function rowToOrder(r: any): Order {
     notes: r.notes, items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
     subtotal: Number(r.subtotal), shipping: Number(r.shipping), total: Number(r.total),
     status: r.status, paymentMethod: r.payment_method,
-    deliveryZone: r.delivery_zone || 'inside_dhaka', createdAt: Number(r.created_at),
+    deliveryZone: r.delivery_zone || 'inside_dhaka',
+    pathaoConsignmentId: r.pathao_consignment_id || undefined,
+    createdAt: Number(r.created_at),
   };
 }
 function rowToBanner(r: any): Banner {
@@ -215,6 +218,7 @@ async function ensureSchema() {
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS variants jsonb DEFAULT '[]'::jsonb`;
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS variant_style text DEFAULT 'image'`;
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_order_at bigint`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pathao_consignment_id text`;
   // Backfill: set last_order_at = created_at where null, then take max from orders if any newer
   await sql`UPDATE customers SET last_order_at = created_at WHERE last_order_at IS NULL`;
   await sql`UPDATE customers c SET last_order_at = sub.max_created
@@ -408,6 +412,10 @@ export const db = {
     await ready();
     await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
     return db.getOrder(id);
+  },
+  async updateOrderPathaoConsignment(id: string, consignmentId: string): Promise<void> {
+    await ready();
+    await sql`UPDATE orders SET pathao_consignment_id = ${consignmentId} WHERE id = ${id}`;
   },
   async deleteOrder(id: string): Promise<boolean> {
     await ready();

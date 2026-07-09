@@ -61,6 +61,11 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             <h2 className="font-semibold">Payment & Delivery</h2>
             <div className="mt-2 text-stone-700">Cash on Delivery</div>
             <div className="text-stone-600">{o.deliveryZone === 'outside_dhaka' ? 'Outside Dhaka' : 'Inside Dhaka'} — {formatPrice(o.shipping)}</div>
+            {o.pathaoConsignmentId && (
+              <div className="mt-2 text-xs font-mono text-brand-600 bg-brand-50 px-2 py-1 rounded">
+                Pathao: {o.pathaoConsignmentId}
+              </div>
+            )}
           </div>
           {o.notes && (
             <div className="card p-5 text-sm">

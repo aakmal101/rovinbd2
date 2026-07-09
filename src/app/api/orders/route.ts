@@ -3,6 +3,7 @@ import { db, DELIVERY_CHARGES, type DeliveryZone } from '@/lib/db';
 import { sendCapiEvent, extractClientContext } from '@/lib/capi';
 import { cityToDivision } from '@/lib/bd-divisions';
 import { notifyOrderPlaced } from '@/lib/notify';
+import { createPathaoOrder } from '@/lib/pathao';
 
 export async function POST(req: Request) {
   try {
@@ -74,6 +75,23 @@ export async function POST(req: Request) {
     });
 
     await notifyOrderPlaced(order);
+
+    // Create Pathao delivery order (best-effort — doesn't block the response)
+    createPathaoOrder({
+      merchantOrderId: String(order.orderNumber),
+      recipientName: order.customerName,
+      recipientPhone: order.customerPhone,
+      recipientAddress: `${order.shippingAddress}, ${order.city}`,
+      amountToCollect: order.total,
+      itemQuantity: items.reduce((s: number, i: { qty: number }) => s + i.qty, 0),
+      itemWeight: 0.5,
+    }).then((result) => {
+      if (result.ok) {
+        db.updateOrderPathaoConsignment(order.id, result.consignmentId).catch(console.error);
+      } else {
+        console.error('Pathao order creation failed:', result.error);
+      }
+    }).catch(console.error);
 
     return NextResponse.json({ id: order.id, orderNumber: order.orderNumber });
   } catch (e) {
