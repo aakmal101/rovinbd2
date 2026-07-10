@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { db, DELIVERY_CHARGES, type DeliveryZone } from '@/lib/db';
 import { sendCapiEvent, extractClientContext } from '@/lib/capi';
 import { cityToDivision } from '@/lib/bd-divisions';
@@ -76,22 +76,28 @@ export async function POST(req: Request) {
 
     await notifyOrderPlaced(order);
 
-    // Create Pathao delivery order (best-effort — doesn't block the response)
-    createPathaoOrder({
-      merchantOrderId: String(order.orderNumber),
-      recipientName: order.customerName,
-      recipientPhone: order.customerPhone,
-      recipientAddress: `${order.shippingAddress}, ${order.city}`,
-      amountToCollect: order.total,
-      itemQuantity: items.reduce((s: number, i: { qty: number }) => s + i.qty, 0),
-      itemWeight: 0.5,
-    }).then((result) => {
-      if (result.ok) {
-        db.updateOrderPathaoConsignment(order.id, result.consignmentId).catch(console.error);
-      } else {
-        console.error('Pathao order creation failed:', result.error);
+    // Create Pathao delivery order (best-effort — doesn't block the response, but
+    // runs via after() so Vercel keeps the function alive until it settles)
+    after(async () => {
+      try {
+        const result = await createPathaoOrder({
+          merchantOrderId: String(order.orderNumber),
+          recipientName: order.customerName,
+          recipientPhone: order.customerPhone,
+          recipientAddress: `${order.shippingAddress}, ${order.city}`,
+          amountToCollect: order.total,
+          itemQuantity: items.reduce((s: number, i: { qty: number }) => s + i.qty, 0),
+          itemWeight: 0.5,
+        });
+        if (result.ok) {
+          await db.updateOrderPathaoConsignment(order.id, result.consignmentId);
+        } else {
+          console.error('Pathao order creation failed:', result.error);
+        }
+      } catch (err) {
+        console.error('Pathao order creation failed:', err);
       }
-    }).catch(console.error);
+    });
 
     return NextResponse.json({ id: order.id, orderNumber: order.orderNumber });
   } catch (e) {
