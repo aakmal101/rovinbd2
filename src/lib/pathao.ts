@@ -3,7 +3,7 @@
 const BASE_URL =
   process.env.PATHAO_ENVIRONMENT === 'sandbox'
     ? 'https://hermes-staging.pathao.com'
-    : 'https://hermes.pathao.com';
+    : 'https://api-hermes.pathao.com';
 
 const CLIENT_ID = process.env.PATHAO_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.PATHAO_CLIENT_SECRET || '';
