@@ -232,16 +232,16 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
           </thead>
           <tbody className="divide-y divide-stone-100">
             {data.orders.map((o) => {
-              const s = STATUS_MAP[o.status] ?? { label: o.status, cls: 'bg-stone-100 text-stone-600' };
+              const isPaidReturn = o.status === 'returned' && o.revenue > 0;
+              const s = isPaidReturn
+                ? { label: '↩️ Paid Return (PR)', cls: 'bg-orange-100 text-orange-800' }
+                : STATUS_MAP[o.status] ?? { label: o.status, cls: 'bg-stone-100 text-stone-600' };
               return (
                 <tr key={o.id} className="hover:bg-stone-50">
                   <td className="px-4 py-2 font-semibold">#{o.orderNumber}</td>
                   <td className="px-4 py-2">{o.customerName}</td>
                   <td className="px-4 py-2 text-stone-600 whitespace-nowrap">{formatDate(o.createdAt)}</td>
-                  <td className="px-4 py-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${s.cls}`}>{s.label}</span>
-                    {o.status === 'returned' && o.revenue > 0 && <span className="ml-1 text-xs text-stone-500" title="Paid return — Pathao still collected some amount">(paid)</span>}
-                  </td>
+                  <td className="px-4 py-2"><span className={`px-2 py-0.5 rounded text-xs font-medium ${s.cls}`}>{s.label}</span></td>
                   <td className="px-4 py-2 text-right">{o.revenue > 0 ? formatPrice(o.revenue) : '—'}</td>
                   <td className="px-4 py-2 text-right">{o.cogs > 0 ? formatPrice(o.cogs) : '—'}</td>
                   <td className="px-4 py-2 text-right">
