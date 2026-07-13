@@ -6,6 +6,7 @@ export type FinanceOrderRow = {
   customerName: string;
   status: Order['status'];
   total: number;
+  revenue: number;
   cogs: number;
   deliveryFee: number;
   deliveryFeeIsEstimate: boolean;
@@ -23,6 +24,7 @@ export type FinanceSummary = {
   netProfit: number;
   deliveredCount: number;
   returnedCount: number;
+  paidReturnCount: number;
   pendingCount: number;
   pendingValue: number;
   returnFeePerOrder: number;
@@ -45,27 +47,41 @@ export function computeFinance(
   let returnCost = 0;
   let deliveredCount = 0;
   let returnedCount = 0;
+  let paidReturnCount = 0;
   let pendingCount = 0;
   let pendingValue = 0;
 
   const rows: FinanceOrderRow[] = orders.map((o) => {
     const itemCost = o.items.reduce((s, i) => s + i.qty * (costByProduct.get(i.productId) || 0), 0);
     const deliveryFee = o.pathaoDeliveryFee ?? o.shipping;
-    // Profit on delivery: what the customer was charged for shipping minus what
-    // Pathao actually billed. Only meaningful once the real fee is known —
-    // while it's still an estimate (deliveryFee === o.shipping) this is 0.
-    const rowDeliveryProfit = o.pathaoDeliveryFee != null ? o.shipping - o.pathaoDeliveryFee : 0;
+    const hasRealFee = o.pathaoDeliveryFee != null;
+    const rowDeliveryProfit = hasRealFee ? o.shipping - o.pathaoDeliveryFee! : 0;
+
+    let rowRevenue = 0;
+    let rowCogs = 0;
 
     if (o.status === 'received') {
       deliveredCount++;
-      revenue += o.total;
-      cogs += itemCost;
+      // Use Pathao's real collected amount when known (covers partial COD, etc.), otherwise the order total.
+      rowRevenue = o.pathaoCollectedAmount ?? o.total;
+      rowCogs = itemCost;
+      revenue += rowRevenue;
+      cogs += rowCogs;
       deliveryCost += deliveryFee;
       deliveryProfit += rowDeliveryProfit;
     } else if (o.status === 'returned') {
       returnedCount++;
       deliveryCost += deliveryFee;
-      returnCost += content.returnFee;
+      // "Paid Return": Pathao still collected some amount even though the parcel came back —
+      // that's real revenue. Goods are assumed to return to stock, so no COGS charged.
+      if (o.pathaoCollectedAmount) {
+        rowRevenue = o.pathaoCollectedAmount;
+        revenue += rowRevenue;
+        paidReturnCount++;
+      }
+      // Once we have Pathao's real fee for this leg, it already reflects the true cost —
+      // don't also apply the flat estimated return fee on top.
+      if (!hasRealFee) returnCost += content.returnFee;
     } else {
       pendingCount++;
       pendingValue += o.total;
@@ -77,9 +93,10 @@ export function computeFinance(
       customerName: o.customerName,
       status: o.status,
       total: o.total,
-      cogs: itemCost,
+      revenue: rowRevenue,
+      cogs: rowCogs,
       deliveryFee,
-      deliveryFeeIsEstimate: o.pathaoDeliveryFee == null,
+      deliveryFeeIsEstimate: !hasRealFee,
       deliveryProfit: rowDeliveryProfit,
       pathaoConsignmentId: o.pathaoConsignmentId || null,
       createdAt: o.createdAt,
@@ -91,7 +108,7 @@ export function computeFinance(
   return {
     summary: {
       revenue, cogs, deliveryCost, deliveryProfit, returnCost, netProfit,
-      deliveredCount, returnedCount, pendingCount, pendingValue,
+      deliveredCount, returnedCount, paidReturnCount, pendingCount, pendingValue,
       returnFeePerOrder: content.returnFee,
     },
     orders: rows.sort((a, b) => b.createdAt - a.createdAt),

@@ -48,6 +48,7 @@ export type PathaoCsvRow = {
   recipientName: string;
   recipientPhone: string;
   collectableAmount: number;
+  collectedAmount: number;
   totalFee: number;
   orderStatus: string;
   mappedStatus: Order['status'] | null;
@@ -75,6 +76,7 @@ export function parsePathaoDeliveryRows(csvText: string): PathaoCsvRow[] {
   const iRecipientName = idx('recipient name');
   const iRecipientPhone = idx('recipient phone');
   const iCollectableAmount = idx('collectable amount');
+  const iCollectedAmount = idx('collected amount');
   const iTotalFee = idx('total fee');
   const iOrderStatus = idx('order status');
   const iOrderType = idx('order type');
@@ -91,6 +93,7 @@ export function parsePathaoDeliveryRows(csvText: string): PathaoCsvRow[] {
 
     const totalFee = Number(r[iTotalFee]);
     const collectableAmount = Number(r[iCollectableAmount]);
+    const collectedAmount = Number(r[iCollectedAmount]);
     const orderStatus = (r[iOrderStatus] || '').trim();
 
     out.push({
@@ -99,6 +102,7 @@ export function parsePathaoDeliveryRows(csvText: string): PathaoCsvRow[] {
       recipientName: (r[iRecipientName] || '').trim(),
       recipientPhone: (r[iRecipientPhone] || '').trim(),
       collectableAmount: Number.isFinite(collectableAmount) ? collectableAmount : 0,
+      collectedAmount: Number.isFinite(collectedAmount) ? collectedAmount : 0,
       totalFee: Number.isFinite(totalFee) ? totalFee : 0,
       orderStatus,
       mappedStatus: mapStatus(orderStatus),

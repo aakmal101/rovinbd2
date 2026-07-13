@@ -53,6 +53,7 @@ export type Order = {
   deliveryZone: 'inside_dhaka' | 'outside_dhaka';
   pathaoConsignmentId?: string;
   pathaoDeliveryFee?: number;
+  pathaoCollectedAmount?: number;
   createdAt: number;
 };
 
@@ -164,6 +165,7 @@ function rowToOrder(r: any): Order {
     deliveryZone: r.delivery_zone || 'inside_dhaka',
     pathaoConsignmentId: r.pathao_consignment_id || undefined,
     pathaoDeliveryFee: r.pathao_delivery_fee != null ? Number(r.pathao_delivery_fee) : undefined,
+    pathaoCollectedAmount: r.pathao_collected_amount != null ? Number(r.pathao_collected_amount) : undefined,
     createdAt: Number(r.created_at),
   };
 }
@@ -225,6 +227,7 @@ async function ensureSchema() {
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_order_at bigint`;
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pathao_consignment_id text`;
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pathao_delivery_fee numeric`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pathao_collected_amount numeric`;
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS cost numeric DEFAULT 0`;
   // Backfill: set last_order_at = created_at where null, then take max from orders if any newer
   await sql`UPDATE customers SET last_order_at = created_at WHERE last_order_at IS NULL`;
@@ -430,6 +433,10 @@ export const db = {
   async updateOrderDeliveryFee(id: string, deliveryFee: number): Promise<void> {
     await ready();
     await sql`UPDATE orders SET pathao_delivery_fee = ${deliveryFee} WHERE id = ${id}`;
+  },
+  async updateOrderCollectedAmount(id: string, collectedAmount: number): Promise<void> {
+    await ready();
+    await sql`UPDATE orders SET pathao_collected_amount = ${collectedAmount} WHERE id = ${id}`;
   },
   async findOrderByNumberOrConsignment(key: string): Promise<Order | undefined> {
     await ready();

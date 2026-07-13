@@ -39,6 +39,9 @@ export async function POST(req: Request) {
       await db.updateOrderDeliveryFee(order.id, row.totalFee);
       feeUpdated++;
     }
+    if (order.pathaoCollectedAmount !== row.collectedAmount) {
+      await db.updateOrderCollectedAmount(order.id, row.collectedAmount);
+    }
     if (row.mappedStatus && row.mappedStatus !== order.status) {
       await db.updateOrderStatus(order.id, row.mappedStatus);
       statusUpdated++;
@@ -75,6 +78,7 @@ export async function POST(req: Request) {
 
     usedOrderIds.add(match.id);
     await db.updateOrderPathaoConsignment(match.id, row.consignmentId, row.totalFee);
+    await db.updateOrderCollectedAmount(match.id, row.collectedAmount);
     linkedByPhone++;
     if (row.mappedStatus && row.mappedStatus !== match.status) {
       await db.updateOrderStatus(match.id, row.mappedStatus);

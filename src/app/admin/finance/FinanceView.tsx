@@ -149,7 +149,11 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <SummaryCard label="Revenue (delivered)" value={formatPrice(summary.revenue)} />
+        <SummaryCard
+          label="Revenue"
+          value={formatPrice(summary.revenue)}
+          sub={summary.paidReturnCount ? `Includes ${summary.paidReturnCount} paid-return order(s)` : undefined}
+        />
         <SummaryCard label="Cost of goods" value={'-' + formatPrice(summary.cogs)} />
         <SummaryCard label="Delivery cost" value={'-' + formatPrice(summary.deliveryCost)} />
         <SummaryCard
@@ -158,7 +162,7 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
           sub="Charged to customer minus Pathao's actual fee"
           highlight={summary.deliveryProfit >= 0 ? 'green' : 'red'}
         />
-        <SummaryCard label="Return cost" value={'-' + formatPrice(summary.returnCost)} sub={`${summary.returnFeePerOrder}/order × ${summary.returnedCount}`} />
+        <SummaryCard label="Return cost" value={'-' + formatPrice(summary.returnCost)} sub={`Estimated only, for returns without a real Pathao fee yet`} />
         <SummaryCard
           label="Net profit"
           value={formatPrice(summary.netProfit)}
@@ -168,7 +172,7 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
       </div>
 
       <div className="text-xs text-stone-500">
-        {summary.deliveredCount} delivered · {summary.returnedCount} returned · {summary.pendingCount} pending/dispatched.
+        {summary.deliveredCount} delivered · {summary.returnedCount} returned ({summary.paidReturnCount} paid) · {summary.pendingCount} pending/dispatched.
         Delivery cost uses Pathao&apos;s actual fee when known, otherwise the delivery charge collected from the customer as an estimate.
       </div>
 
@@ -234,9 +238,12 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
                   <td className="px-4 py-2 font-semibold">#{o.orderNumber}</td>
                   <td className="px-4 py-2">{o.customerName}</td>
                   <td className="px-4 py-2 text-stone-600 whitespace-nowrap">{formatDate(o.createdAt)}</td>
-                  <td className="px-4 py-2"><span className={`px-2 py-0.5 rounded text-xs font-medium ${s.cls}`}>{s.label}</span></td>
-                  <td className="px-4 py-2 text-right">{o.status === 'received' ? formatPrice(o.total) : '—'}</td>
-                  <td className="px-4 py-2 text-right">{o.status === 'received' ? formatPrice(o.cogs) : '—'}</td>
+                  <td className="px-4 py-2">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${s.cls}`}>{s.label}</span>
+                    {o.status === 'returned' && o.revenue > 0 && <span className="ml-1 text-xs text-stone-500" title="Paid return — Pathao still collected some amount">(paid)</span>}
+                  </td>
+                  <td className="px-4 py-2 text-right">{o.revenue > 0 ? formatPrice(o.revenue) : '—'}</td>
+                  <td className="px-4 py-2 text-right">{o.cogs > 0 ? formatPrice(o.cogs) : '—'}</td>
                   <td className="px-4 py-2 text-right">
                     {formatPrice(o.deliveryFee)}
                     {o.deliveryFeeIsEstimate && <span className="text-amber-600" title="Estimated from delivery charge collected — actual Pathao fee unknown">*</span>}
