@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { formatPrice } from '@/lib/format';
 import DeleteButton from './DeleteButton';
 import MigrateVariantsButton from './MigrateVariantsButton';
+import BulkSetCostButton from './BulkSetCostButton';
 
 export default async function ProductsAdmin() {
   const [products, categories] = await Promise.all([db.listProducts(), db.listProductCategories()]);
@@ -17,6 +18,7 @@ export default async function ProductsAdmin() {
         <div className="flex flex-col items-end gap-2">
           <Link href="/admin/products/new" className="btn btn-primary">+ Add Product</Link>
           <MigrateVariantsButton />
+          <BulkSetCostButton />
         </div>
       </div>
 
@@ -28,6 +30,7 @@ export default async function ProductsAdmin() {
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2 text-right">Price</th>
+              <th className="px-4 py-2 text-right">Cost</th>
               <th className="px-4 py-2 text-right">Stock</th>
               <th className="px-4 py-2">Featured</th>
               <th className="px-4 py-2 text-right">Actions</th>
@@ -40,6 +43,7 @@ export default async function ProductsAdmin() {
                 <td className="px-4 py-2 font-medium">{p.name}</td>
                 <td className="px-4 py-2 text-stone-600">{catLabel(p.category)}</td>
                 <td className="px-4 py-2 text-right">{formatPrice(p.price)}</td>
+                <td className="px-4 py-2 text-right">{formatPrice(p.cost)}</td>
                 <td className="px-4 py-2 text-right">{p.stock}</td>
                 <td className="px-4 py-2">{p.featured ? '★' : '—'}</td>
                 <td className="px-4 py-2 text-right space-x-2">

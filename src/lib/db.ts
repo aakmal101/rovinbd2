@@ -359,6 +359,11 @@ export const db = {
     const { rowCount } = await sql`DELETE FROM products WHERE id = ${id}`;
     return (rowCount ?? 0) > 0;
   },
+  async setAllProductCosts(cost: number): Promise<number> {
+    await ready();
+    const { rowCount } = await sql`UPDATE products SET cost = ${cost}`;
+    return rowCount ?? 0;
+  },
 
   // orders
   async listOrders(): Promise<Order[]> {
