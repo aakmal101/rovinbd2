@@ -113,7 +113,7 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
     setImporting(false);
     if (res.ok) {
       setImportMsg(
-        `${d.rowsInCsv} delivery row(s) in file — updated ${d.feeUpdated} fee(s), ${d.statusUpdated} status(es), linked ${d.linkedByPhone} pre-API order(s) by phone.` +
+        `${d.rowsInCsv} delivery row(s) in file — ${d.matchedByConsignment} matched by consignment, ${d.linkedByPhone} newly linked by phone, updated ${d.feeUpdated} fee(s), ${d.statusUpdated} status(es).` +
         (d.ambiguous.length ? ` Ambiguous (multiple possible matches): ${d.ambiguous.join('; ')}` : '') +
         (d.unmatched.length ? ` Couldn't match: ${d.unmatched.join(', ')}` : ''),
       );

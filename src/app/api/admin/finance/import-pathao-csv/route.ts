@@ -23,11 +23,35 @@ export async function POST(req: Request) {
   let feeUpdated = 0;
   let statusUpdated = 0;
   let linkedByPhone = 0;
+  let matchedByConsignment = 0;
   const unmatched: string[] = [];
   const ambiguous: string[] = [];
 
-  // Pass 1: rows that carry Pathao's merchant_order_id (our order number)
-  const withId = rows.filter((r) => r.merchantOrderId != null);
+  // Pass 0: rows already linked to an order via a previous import — match by consignment id directly
+  const byConsignment = new Map<string, Order>();
+  for (const o of allOrders) if (o.pathaoConsignmentId) byConsignment.set(o.pathaoConsignmentId, o);
+
+  const remaining: typeof rows = [];
+  for (const row of rows) {
+    const order = byConsignment.get(row.consignmentId);
+    if (!order) { remaining.push(row); continue; }
+    usedOrderIds.add(order.id);
+    matchedByConsignment++;
+    if (order.pathaoDeliveryFee !== row.totalFee) {
+      await db.updateOrderDeliveryFee(order.id, row.totalFee);
+      feeUpdated++;
+    }
+    if (order.pathaoCollectedAmount !== row.collectedAmount) {
+      await db.updateOrderCollectedAmount(order.id, row.collectedAmount);
+    }
+    if (row.mappedStatus && row.mappedStatus !== order.status) {
+      await db.updateOrderStatus(order.id, row.mappedStatus);
+      statusUpdated++;
+    }
+  }
+
+  // Pass 1: remaining rows that carry Pathao's merchant_order_id (our order number)
+  const withId = remaining.filter((r) => r.merchantOrderId != null);
   for (const row of withId) {
     const order = await db.findOrderByNumberOrConsignment(row.merchantOrderId!);
     if (!order) {
@@ -49,7 +73,7 @@ export async function POST(req: Request) {
   }
 
   // Pass 2: pre-API deliveries with no merchant_order_id — match by phone (+ amount to disambiguate)
-  const withoutId = rows.filter((r) => r.merchantOrderId == null);
+  const withoutId = remaining.filter((r) => r.merchantOrderId == null);
   const unlinkedByPhone = new Map<string, Order[]>();
   for (const o of allOrders) {
     if (o.pathaoConsignmentId || usedOrderIds.has(o.id)) continue;
@@ -88,6 +112,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     rowsInCsv: rows.length,
+    matchedByConsignment,
     feeUpdated,
     statusUpdated,
     linkedByPhone,
