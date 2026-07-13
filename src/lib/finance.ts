@@ -9,6 +9,7 @@ export type FinanceOrderRow = {
   cogs: number;
   deliveryFee: number;
   deliveryFeeIsEstimate: boolean;
+  deliveryProfit: number;
   pathaoConsignmentId: string | null;
   createdAt: number;
 };
@@ -17,6 +18,7 @@ export type FinanceSummary = {
   revenue: number;
   cogs: number;
   deliveryCost: number;
+  deliveryProfit: number;
   returnCost: number;
   netProfit: number;
   deliveredCount: number;
@@ -39,6 +41,7 @@ export function computeFinance(
   let revenue = 0;
   let cogs = 0;
   let deliveryCost = 0;
+  let deliveryProfit = 0;
   let returnCost = 0;
   let deliveredCount = 0;
   let returnedCount = 0;
@@ -48,12 +51,17 @@ export function computeFinance(
   const rows: FinanceOrderRow[] = orders.map((o) => {
     const itemCost = o.items.reduce((s, i) => s + i.qty * (costByProduct.get(i.productId) || 0), 0);
     const deliveryFee = o.pathaoDeliveryFee ?? o.shipping;
+    // Profit on delivery: what the customer was charged for shipping minus what
+    // Pathao actually billed. Only meaningful once the real fee is known —
+    // while it's still an estimate (deliveryFee === o.shipping) this is 0.
+    const rowDeliveryProfit = o.pathaoDeliveryFee != null ? o.shipping - o.pathaoDeliveryFee : 0;
 
     if (o.status === 'received') {
       deliveredCount++;
       revenue += o.total;
       cogs += itemCost;
       deliveryCost += deliveryFee;
+      deliveryProfit += rowDeliveryProfit;
     } else if (o.status === 'returned') {
       returnedCount++;
       deliveryCost += deliveryFee;
@@ -72,6 +80,7 @@ export function computeFinance(
       cogs: itemCost,
       deliveryFee,
       deliveryFeeIsEstimate: o.pathaoDeliveryFee == null,
+      deliveryProfit: rowDeliveryProfit,
       pathaoConsignmentId: o.pathaoConsignmentId || null,
       createdAt: o.createdAt,
     };
@@ -81,7 +90,7 @@ export function computeFinance(
 
   return {
     summary: {
-      revenue, cogs, deliveryCost, returnCost, netProfit,
+      revenue, cogs, deliveryCost, deliveryProfit, returnCost, netProfit,
       deliveredCount, returnedCount, pendingCount, pendingValue,
       returnFeePerOrder: content.returnFee,
     },

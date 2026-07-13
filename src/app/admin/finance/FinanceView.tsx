@@ -19,6 +19,9 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState('');
+  const [reconcileText, setReconcileText] = useState('');
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileMsg, setReconcileMsg] = useState('');
 
   const load = async (fromDate: string, toDate: string) => {
     setLoading(true);
@@ -58,6 +61,43 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
     }
   };
 
+  const reconcile = async () => {
+    const rows = reconcileText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(/\t|,/).map((p) => p.trim());
+        const key = parts[0]?.replace(/^#/, '') || '';
+        const fee = Number((parts[1] || '').replace(/[^\d.-]/g, ''));
+        return { key, fee };
+      })
+      .filter((r) => r.key);
+
+    if (rows.length === 0) {
+      setReconcileMsg('Paste at least one row: Order ID or Consignment ID, then the actual charge.');
+      return;
+    }
+    setReconciling(true);
+    setReconcileMsg('');
+    const res = await fetch('/api/admin/finance/reconcile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setReconciling(false);
+    if (res.ok) {
+      setReconcileMsg(
+        `Matched ${d.matched.length} order(s).` +
+        (d.unmatched.length ? ` Couldn't match: ${d.unmatched.join(', ')}` : ''),
+      );
+      if (d.matched.length) load(from, to);
+    } else {
+      setReconcileMsg(d.error || 'Reconcile failed');
+    }
+  };
+
   const { summary } = data;
 
   return (
@@ -87,6 +127,12 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
         <SummaryCard label="Revenue (delivered)" value={formatPrice(summary.revenue)} />
         <SummaryCard label="Cost of goods" value={'-' + formatPrice(summary.cogs)} />
         <SummaryCard label="Delivery cost" value={'-' + formatPrice(summary.deliveryCost)} />
+        <SummaryCard
+          label="Delivery profit"
+          value={formatPrice(summary.deliveryProfit)}
+          sub="Charged to customer minus Pathao's actual fee"
+          highlight={summary.deliveryProfit >= 0 ? 'green' : 'red'}
+        />
         <SummaryCard label="Return cost" value={'-' + formatPrice(summary.returnCost)} sub={`${summary.returnFeePerOrder}/order × ${summary.returnedCount}`} />
         <SummaryCard
           label="Net profit"
@@ -101,8 +147,30 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
         Delivery cost uses Pathao&apos;s actual fee when known, otherwise the delivery charge collected from the customer as an estimate.
       </div>
 
+      <div className="card p-4 space-y-2">
+        <h2 className="font-semibold">Reconcile real Pathao costs</h2>
+        <p className="text-sm text-stone-500">
+          Pathao&apos;s exact per-order cost (delivery fee + COD fee − discount) isn&apos;t exposed by their API — only the quoted delivery fee is.
+          Paste rows from the Pathao delivery list (Order ID or Consignment ID, then the &quot;Charge&quot; amount) to correct the estimate for those orders.
+          One per line — <code className="text-xs bg-stone-100 px-1 rounded">1161, 59.30</code> or paste straight from a spreadsheet (tab-separated).
+        </p>
+        <textarea
+          className="input font-mono text-sm"
+          rows={4}
+          placeholder={'1161, 59.30\n1160, 59.30\nDC130726PCZ7ER, 66.30'}
+          value={reconcileText}
+          onChange={(e) => setReconcileText(e.target.value)}
+        />
+        <div className="flex items-center gap-3">
+          <button onClick={reconcile} disabled={reconciling} className="btn btn-outline">
+            {reconciling ? 'Reconciling…' : 'Reconcile'}
+          </button>
+          {reconcileMsg && <div className="text-xs text-stone-600">{reconcileMsg}</div>}
+        </div>
+      </div>
+
       <div className="card overflow-x-auto">
-        <table className="w-full text-sm min-w-[820px]">
+        <table className="w-full text-sm min-w-[940px]">
           <thead className="bg-stone-50 text-stone-600 text-left">
             <tr>
               <th className="px-4 py-2">Order</th>
@@ -112,6 +180,7 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
               <th className="px-4 py-2 text-right">Revenue</th>
               <th className="px-4 py-2 text-right">COGS</th>
               <th className="px-4 py-2 text-right">Delivery</th>
+              <th className="px-4 py-2 text-right">Delivery profit</th>
               <th className="px-4 py-2">Consignment</th>
             </tr>
           </thead>
@@ -129,6 +198,9 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
                   <td className="px-4 py-2 text-right">
                     {formatPrice(o.deliveryFee)}
                     {o.deliveryFeeIsEstimate && <span className="text-amber-600" title="Estimated from delivery charge collected — actual Pathao fee unknown">*</span>}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {o.deliveryFeeIsEstimate ? '—' : formatPrice(o.deliveryProfit)}
                   </td>
                   <td className="px-4 py-2 text-stone-600">{o.pathaoConsignmentId || '—'}</td>
                 </tr>

@@ -422,6 +422,18 @@ export const db = {
     await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
     return db.getOrder(id);
   },
+  async updateOrderDeliveryFee(id: string, deliveryFee: number): Promise<void> {
+    await ready();
+    await sql`UPDATE orders SET pathao_delivery_fee = ${deliveryFee} WHERE id = ${id}`;
+  },
+  async findOrderByNumberOrConsignment(key: string): Promise<Order | undefined> {
+    await ready();
+    const asNumber = Number(key);
+    const { rows } = Number.isFinite(asNumber) && key.trim() !== ''
+      ? await sql`SELECT * FROM orders WHERE order_number = ${asNumber} OR pathao_consignment_id = ${key} LIMIT 1`
+      : await sql`SELECT * FROM orders WHERE pathao_consignment_id = ${key} LIMIT 1`;
+    return rows[0] ? rowToOrder(rows[0]) : undefined;
+  },
   async updateOrderPathaoConsignment(id: string, consignmentId: string, deliveryFee?: number): Promise<void> {
     await ready();
     if (deliveryFee != null) {
