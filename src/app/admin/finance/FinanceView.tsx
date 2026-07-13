@@ -22,6 +22,8 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
   const [reconcileText, setReconcileText] = useState('');
   const [reconciling, setReconciling] = useState(false);
   const [reconcileMsg, setReconcileMsg] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
 
   const load = async (fromDate: string, toDate: string) => {
     setLoading(true);
@@ -98,6 +100,28 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
     }
   };
 
+  const importCsv = async (file: File) => {
+    setImporting(true);
+    setImportMsg('');
+    const csv = await file.text();
+    const res = await fetch('/api/admin/finance/import-pathao-csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setImporting(false);
+    if (res.ok) {
+      setImportMsg(
+        `${d.rowsInCsv} delivery row(s) in file — updated ${d.feeUpdated} fee(s), ${d.statusUpdated} status(es).` +
+        (d.unmatched.length ? ` Couldn't match: ${d.unmatched.join(', ')}` : ''),
+      );
+      load(from, to);
+    } else {
+      setImportMsg(d.error || 'Import failed');
+    }
+  };
+
   const { summary } = data;
 
   return (
@@ -148,10 +172,27 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
       </div>
 
       <div className="card p-4 space-y-2">
-        <h2 className="font-semibold">Reconcile real Pathao costs</h2>
+        <h2 className="font-semibold">Import Pathao CSV</h2>
         <p className="text-sm text-stone-500">
-          Pathao&apos;s exact per-order cost (delivery fee + COD fee − discount) isn&apos;t exposed by their API — only the quoted delivery fee is.
-          Paste rows from the Pathao delivery list (Order ID or Consignment ID, then the &quot;Charge&quot; amount) to correct the estimate for those orders.
+          From the Pathao merchant panel: Deliveries → Export CSV. Upload it here — it has the real total fee (delivery + COD fee) and live
+          order status per order, so this updates both delivery cost and order status (delivered/returned) in one go.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="file"
+            accept=".csv"
+            disabled={importing}
+            onChange={(e) => e.target.files?.[0] && importCsv(e.target.files[0])}
+          />
+          {importing && <span className="text-sm text-stone-500">Importing…</span>}
+        </div>
+        {importMsg && <div className="text-xs text-stone-600">{importMsg}</div>}
+      </div>
+
+      <div className="card p-4 space-y-2">
+        <h2 className="font-semibold">Reconcile manually</h2>
+        <p className="text-sm text-stone-500">
+          For one-off corrections without a full CSV export. Paste rows (Order ID or Consignment ID, then the actual charge).
           One per line — <code className="text-xs bg-stone-100 px-1 rounded">1161, 59.30</code> or paste straight from a spreadsheet (tab-separated).
         </p>
         <textarea
