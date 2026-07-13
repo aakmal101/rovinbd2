@@ -43,11 +43,26 @@ const DELIVERED_STATUSES = new Set(['Delivered', 'Partial Delivery']);
 const RETURNED_STATUSES = new Set(['Return', 'Paid Return', 'Cancelled', 'Exchange']);
 
 export type PathaoCsvRow = {
-  merchantOrderId: string;
+  consignmentId: string;
+  merchantOrderId: string | null; // null when Pathao has no merchant_order_id (pre-API orders)
+  recipientName: string;
+  recipientPhone: string;
+  collectableAmount: number;
   totalFee: number;
   orderStatus: string;
   mappedStatus: Order['status'] | null;
 };
+
+export function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  return digits.slice(-10); // last 10 digits — tolerant of +880/leading-0 formatting differences
+}
+
+function mapStatus(orderStatus: string): Order['status'] | null {
+  if (DELIVERED_STATUSES.has(orderStatus)) return 'received';
+  if (RETURNED_STATUSES.has(orderStatus)) return 'returned';
+  return orderStatus ? 'dispatched' : null;
+}
 
 export function parsePathaoDeliveryRows(csvText: string): PathaoCsvRow[] {
   const table = parseCsv(csvText);
@@ -55,7 +70,11 @@ export function parsePathaoDeliveryRows(csvText: string): PathaoCsvRow[] {
   const header = table[0].map((h) => h.trim().toLowerCase());
   const idx = (name: string) => header.indexOf(name);
 
+  const iConsignmentId = idx('order consignment id');
   const iMerchantOrderId = idx('merchant order id');
+  const iRecipientName = idx('recipient name');
+  const iRecipientPhone = idx('recipient phone');
+  const iCollectableAmount = idx('collectable amount');
   const iTotalFee = idx('total fee');
   const iOrderStatus = idx('order status');
   const iOrderType = idx('order type');
@@ -65,22 +84,25 @@ export function parsePathaoDeliveryRows(csvText: string): PathaoCsvRow[] {
   const out: PathaoCsvRow[] = [];
   for (const r of table.slice(1)) {
     const orderType = (r[iOrderType] || '').trim();
-    if (orderType !== 'Delivery') continue; // skip reverse-logistics rows, they carry no merchant order id
+    if (orderType !== 'Delivery') continue; // skip reverse-logistics rows
 
     const rawId = (r[iMerchantOrderId] || '').trim().replace(/^"+|"+$/g, '');
-    if (!rawId || rawId.toUpperCase() === 'N/A') continue;
+    const merchantOrderId = rawId && rawId.toUpperCase() !== 'N/A' ? rawId : null;
 
     const totalFee = Number(r[iTotalFee]);
+    const collectableAmount = Number(r[iCollectableAmount]);
     const orderStatus = (r[iOrderStatus] || '').trim();
-    const mappedStatus: Order['status'] | null = DELIVERED_STATUSES.has(orderStatus)
-      ? 'received'
-      : RETURNED_STATUSES.has(orderStatus)
-        ? 'returned'
-        : orderStatus
-          ? 'dispatched'
-          : null;
 
-    out.push({ merchantOrderId: rawId, totalFee: Number.isFinite(totalFee) ? totalFee : 0, orderStatus, mappedStatus });
+    out.push({
+      consignmentId: (r[iConsignmentId] || '').trim(),
+      merchantOrderId,
+      recipientName: (r[iRecipientName] || '').trim(),
+      recipientPhone: (r[iRecipientPhone] || '').trim(),
+      collectableAmount: Number.isFinite(collectableAmount) ? collectableAmount : 0,
+      totalFee: Number.isFinite(totalFee) ? totalFee : 0,
+      orderStatus,
+      mappedStatus: mapStatus(orderStatus),
+    });
   }
   return out;
 }
