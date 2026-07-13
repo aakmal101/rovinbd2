@@ -54,7 +54,7 @@ export type PathaoOrderInput = {
 };
 
 export type PathaoOrderResult =
-  | { ok: true; consignmentId: string }
+  | { ok: true; consignmentId: string; deliveryFee?: number }
   | { ok: false; error: string };
 
 export async function createPathaoOrder(input: PathaoOrderInput): Promise<PathaoOrderResult> {
@@ -92,7 +92,34 @@ export async function createPathaoOrder(input: PathaoOrderInput): Promise<Pathao
 
     const consignmentId: string = data?.data?.consignment_id || data?.consignment_id || '';
     if (!consignmentId) return { ok: false, error: 'No consignment_id in response' };
-    return { ok: true, consignmentId };
+    const deliveryFee = Number(data?.data?.delivery_fee ?? data?.delivery_fee);
+    return { ok: true, consignmentId, deliveryFee: Number.isFinite(deliveryFee) ? deliveryFee : undefined };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+export type PathaoOrderInfo =
+  | { ok: true; statusSlug: string }
+  | { ok: false; error: string };
+
+// Pathao's Get Order Short Info endpoint — no fee data, but gives live
+// delivery status (e.g. "Delivered", "Return", "Cancelled") for an order
+// that was already created via createPathaoOrder.
+export async function getPathaoOrderInfo(consignmentId: string): Promise<PathaoOrderInfo> {
+  if (!CLIENT_ID || !CLIENT_SECRET || !USERNAME || !PASSWORD) {
+    return { ok: false, error: 'Pathao credentials not configured' };
+  }
+  try {
+    const token = await getAccessToken();
+    const res = await fetch(`${BASE_URL}/aladdin/api/v1/orders/${encodeURIComponent(consignmentId)}/info`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) return { ok: false, error: data.message || JSON.stringify(data) };
+    const statusSlug: string = data?.data?.order_status_slug || data?.data?.order_status || '';
+    if (!statusSlug) return { ok: false, error: 'No status in response' };
+    return { ok: true, statusSlug };
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }

@@ -123,6 +123,17 @@ export default function ContentForm({ initial }: { initial: SiteContent }) {
         </div>
       </div>
 
+      {/* Finance */}
+      <div className="card p-6 space-y-4">
+        <div>
+          <h2 className="font-semibold text-lg">Finance</h2>
+          <p className="text-sm text-stone-500 mt-0.5">Used by the Finance page to estimate loss on returned orders.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div><label className="label">Return cost per order (৳)</label><input type="number" min={0} className="input" value={form.returnFee} onChange={(e) => setForm({ ...form, returnFee: Number(e.target.value) })} /></div>
+        </div>
+      </div>
+
       <div className="flex items-center gap-3 sticky bottom-4 bg-white/80 backdrop-blur p-3 rounded-lg shadow border border-stone-200">
         <button disabled={saving} className="btn btn-primary">{saving ? 'Saving…' : 'Save Changes'}</button>
         {saved && <span className="text-green-700 text-sm">Saved ✓</span>}

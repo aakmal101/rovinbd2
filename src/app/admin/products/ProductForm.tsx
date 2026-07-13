@@ -12,6 +12,7 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price ?? 0,
+    cost: product?.cost ?? 0,
     stock: product?.stock ?? 0,
     image: product?.image || '/placeholder.svg',
     category: product?.category || categories[0]?.value || 'classic',
@@ -52,7 +53,7 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, price: Number(form.price), stock: Number(form.stock), variants }),
+      body: JSON.stringify({ ...form, price: Number(form.price), cost: Number(form.cost), stock: Number(form.stock), variants }),
     });
     if (res.ok) {
       router.push('/admin/products');
@@ -70,6 +71,7 @@ export default function ProductForm({ product, categories = [] }: { product?: Pr
         <div className="sm:col-span-2"><label className="label">Name</label><input required className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
         <div className="sm:col-span-2"><label className="label">Description</label><textarea required rows={4} className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
         <div><label className="label">Price (৳)</label><input type="number" min={0} required className="input" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} /></div>
+        <div><label className="label">Cost (৳) <span className="text-xs text-stone-500 font-normal">(what it costs you — used for profit/loss)</span></label><input type="number" min={0} className="input" value={form.cost} onChange={(e) => setForm({ ...form, cost: Number(e.target.value) })} /></div>
         <div>
           <label className="label">Stock {variants.length > 0 && <span className="text-xs text-stone-500 font-normal">(ignored — see variants)</span>}</label>
           <input type="number" min={0} required className="input disabled:bg-stone-100" disabled={variants.length > 0} value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} />

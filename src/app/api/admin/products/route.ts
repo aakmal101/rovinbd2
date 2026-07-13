@@ -22,6 +22,7 @@ export async function POST(req: Request) {
   const body = await req.json();
   const p = await db.createProduct({
     name: body.name, description: body.description, price: Number(body.price) || 0,
+    cost: Number(body.cost) || 0,
     stock: Number(body.stock) || 0, image: body.image || '/placeholder.svg',
     category: body.category || 'classic', featured: !!body.featured,
     variants: sanitizeVariants(body.variants),

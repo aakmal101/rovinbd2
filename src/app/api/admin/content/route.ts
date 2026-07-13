@@ -15,6 +15,7 @@ export async function PUT(req: Request) {
     heroSubheadline: body.heroSubheadline ?? '',
     heroCtaText: body.heroCtaText ?? '',
     heroCtaLink: body.heroCtaLink || '/shop',
+    returnFee: Number(body.returnFee) || 0,
   });
   return NextResponse.json(updated);
 }

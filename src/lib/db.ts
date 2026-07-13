@@ -13,6 +13,7 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  cost: number;
   stock: number;
   image: string;
   category: string;
@@ -51,6 +52,7 @@ export type Order = {
   paymentMethod: 'cod' | 'bank_transfer';
   deliveryZone: 'inside_dhaka' | 'outside_dhaka';
   pathaoConsignmentId?: string;
+  pathaoDeliveryFee?: number;
   createdAt: number;
 };
 
@@ -112,6 +114,7 @@ export type SiteContent = {
   heroSubheadline: string;
   heroCtaText: string;
   heroCtaLink: string;
+  returnFee: number;
 };
 
 // ---------- helpers ----------
@@ -135,7 +138,7 @@ function rowToProduct(r: any): Product {
   }
   return {
     id: r.id, slug: r.slug, name: r.name, description: r.description,
-    price: Number(r.price), stock: Number(r.stock), image: r.image,
+    price: Number(r.price), cost: Number(r.cost) || 0, stock: Number(r.stock), image: r.image,
     category: r.category, featured: !!r.featured, variants,
     variantStyle: (r.variant_style as 'image' | 'size') || 'image',
     createdAt: Number(r.created_at),
@@ -160,6 +163,7 @@ function rowToOrder(r: any): Order {
     status: r.status, paymentMethod: r.payment_method,
     deliveryZone: r.delivery_zone || 'inside_dhaka',
     pathaoConsignmentId: r.pathao_consignment_id || undefined,
+    pathaoDeliveryFee: r.pathao_delivery_fee != null ? Number(r.pathao_delivery_fee) : undefined,
     createdAt: Number(r.created_at),
   };
 }
@@ -182,6 +186,7 @@ function rowToContent(r: any): SiteContent {
     shippingFee: Number(r.shipping_fee), freeShippingOver: Number(r.free_shipping_over),
     heroImage: r.hero_image, heroHeadline: r.hero_headline, heroSubheadline: r.hero_subheadline,
     heroCtaText: r.hero_cta_text, heroCtaLink: r.hero_cta_link,
+    returnFee: r.return_fee != null ? Number(r.return_fee) : 100,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -219,6 +224,8 @@ async function ensureSchema() {
   await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS variant_style text DEFAULT 'image'`;
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_order_at bigint`;
   await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pathao_consignment_id text`;
+  await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS pathao_delivery_fee numeric`;
+  await sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS cost numeric DEFAULT 0`;
   // Backfill: set last_order_at = created_at where null, then take max from orders if any newer
   await sql`UPDATE customers SET last_order_at = created_at WHERE last_order_at IS NULL`;
   await sql`UPDATE customers c SET last_order_at = sub.max_created
@@ -247,6 +254,7 @@ async function ensureSchema() {
     shipping_fee numeric DEFAULT 0, free_shipping_over numeric DEFAULT 0,
     hero_image text, hero_headline text, hero_subheadline text, hero_cta_text text, hero_cta_link text
   )`;
+  await sql`ALTER TABLE site_content ADD COLUMN IF NOT EXISTS return_fee numeric DEFAULT 100`;
   await seedIfEmpty();
 }
 
@@ -256,12 +264,12 @@ async function seedIfEmpty() {
   const now = Date.now();
 
   const products: Omit<Product, 'createdAt'>[] = [
-    { id: 'p1', slug: 'classic-paisley-red', name: 'Classic Paisley Red', description: 'Our signature paisley bandana in deep red — 100% cotton, hemmed edges, 22"×22". A timeless piece for every wardrobe.', price: 450, stock: 50, image: '/placeholder.svg', category: 'classic', featured: true, variants: [] },
-    { id: 'p2', slug: 'midnight-blue-paisley', name: 'Midnight Blue Paisley', description: 'Deep navy paisley print on premium cotton. Soft, breathable, perfect for everyday wear.', price: 450, stock: 35, image: '/placeholder.svg', category: 'classic', featured: true, variants: [] },
-    { id: 'p3', slug: 'forest-green-tribal', name: 'Forest Green Tribal', description: 'Bold tribal motifs in forest green. Hand-finished edges, premium cotton blend.', price: 500, stock: 20, image: '/placeholder.svg', category: 'tribal', featured: false, variants: [] },
-    { id: 'p4', slug: 'sunset-orange-floral', name: 'Sunset Orange Floral', description: 'Vibrant floral pattern on warm orange — a statement piece for sunny days.', price: 480, stock: 28, image: '/placeholder.svg', category: 'floral', featured: true, variants: [] },
-    { id: 'p5', slug: 'pure-black-essential', name: 'Pure Black Essential', description: 'The everyday essential. Solid black, no print, premium cotton. Pairs with anything.', price: 400, stock: 80, image: '/placeholder.svg', category: 'solid', featured: false, variants: [] },
-    { id: 'p6', slug: 'ivory-white-essential', name: 'Ivory White Essential', description: 'Clean ivory white, solid colour, premium cotton. The minimalist favourite.', price: 400, stock: 60, image: '/placeholder.svg', category: 'solid', featured: false, variants: [] },
+    { id: 'p1', slug: 'classic-paisley-red', name: 'Classic Paisley Red', description: 'Our signature paisley bandana in deep red — 100% cotton, hemmed edges, 22"×22". A timeless piece for every wardrobe.', price: 450, cost: 0, stock: 50, image: '/placeholder.svg', category: 'classic', featured: true, variants: [] },
+    { id: 'p2', slug: 'midnight-blue-paisley', name: 'Midnight Blue Paisley', description: 'Deep navy paisley print on premium cotton. Soft, breathable, perfect for everyday wear.', price: 450, cost: 0, stock: 35, image: '/placeholder.svg', category: 'classic', featured: true, variants: [] },
+    { id: 'p3', slug: 'forest-green-tribal', name: 'Forest Green Tribal', description: 'Bold tribal motifs in forest green. Hand-finished edges, premium cotton blend.', price: 500, cost: 0, stock: 20, image: '/placeholder.svg', category: 'tribal', featured: false, variants: [] },
+    { id: 'p4', slug: 'sunset-orange-floral', name: 'Sunset Orange Floral', description: 'Vibrant floral pattern on warm orange — a statement piece for sunny days.', price: 480, cost: 0, stock: 28, image: '/placeholder.svg', category: 'floral', featured: true, variants: [] },
+    { id: 'p5', slug: 'pure-black-essential', name: 'Pure Black Essential', description: 'The everyday essential. Solid black, no print, premium cotton. Pairs with anything.', price: 400, cost: 0, stock: 80, image: '/placeholder.svg', category: 'solid', featured: false, variants: [] },
+    { id: 'p6', slug: 'ivory-white-essential', name: 'Ivory White Essential', description: 'Clean ivory white, solid colour, premium cotton. The minimalist favourite.', price: 400, cost: 0, stock: 60, image: '/placeholder.svg', category: 'solid', featured: false, variants: [] },
   ];
   for (const p of products) {
     await sql`INSERT INTO products (id, slug, name, description, price, stock, image, category, featured, variants, created_at)
@@ -290,11 +298,11 @@ async function seedIfEmpty() {
       VALUES (${t.id}, ${t.kind}, ${t.label}, ${t.sublabel}, ${t.link}, ${t.image}, ${t.bgColor}, ${t.order})`;
   }
 
-  await sql`INSERT INTO site_content (id, site_name, tagline, about_title, about_body, contact_email, contact_phone, contact_address, shipping_fee, free_shipping_over, hero_image, hero_headline, hero_subheadline, hero_cta_text, hero_cta_link)
+  await sql`INSERT INTO site_content (id, site_name, tagline, about_title, about_body, contact_email, contact_phone, contact_address, shipping_fee, free_shipping_over, hero_image, hero_headline, hero_subheadline, hero_cta_text, hero_cta_link, return_fee)
     VALUES (1, ${'Rovin Bandana'}, ${'Handcrafted bandanas for the bold.'}, ${'Our Story'},
     ${'Rovin Bandana started with a simple idea: a great bandana is more than fabric. It is a statement, a companion, a piece of personal style. We work with skilled artisans to bring you premium cotton bandanas in patterns that stand out. Every piece is hand-finished and made to last.'},
     ${'hello@rovinbandana.com'}, ${'+91 98765 43210'}, ${'Mumbai, India'}, ${60}, ${1000},
-    ${'/hero-banner.jpg'}, ${''}, ${''}, ${'Shop the Collection'}, ${'/shop'})
+    ${'/hero-banner.jpg'}, ${''}, ${''}, ${'Shop the Collection'}, ${'/shop'}, ${100})
     ON CONFLICT (id) DO NOTHING`;
 }
 
@@ -322,7 +330,7 @@ export const db = {
     const { rows } = await sql`SELECT * FROM products WHERE slug = ${slug} LIMIT 1`;
     return rows[0] ? rowToProduct(rows[0]) : undefined;
   },
-  async createProduct(input: Omit<Product, 'id' | 'createdAt' | 'slug' | 'variants'> & { slug?: string; variants?: ProductVariant[] }): Promise<Product> {
+  async createProduct(input: Omit<Product, 'id' | 'createdAt' | 'slug' | 'variants' | 'cost'> & { slug?: string; variants?: ProductVariant[]; cost?: number }): Promise<Product> {
     await ready();
     const base = input.slug || slugify(input.name);
     let slug = base;
@@ -332,16 +340,17 @@ export const db = {
     const createdAt = Date.now();
     const variants = input.variants || [];
     const variantStyle = input.variantStyle || 'image';
-    await sql`INSERT INTO products (id, slug, name, description, price, stock, image, category, featured, variants, variant_style, created_at)
-      VALUES (${id}, ${slug}, ${input.name}, ${input.description}, ${input.price}, ${input.stock}, ${input.image}, ${input.category}, ${input.featured}, ${JSON.stringify(variants)}::jsonb, ${variantStyle}, ${createdAt})`;
-    return { ...input, variants, variantStyle, slug, id, createdAt };
+    const cost = input.cost || 0;
+    await sql`INSERT INTO products (id, slug, name, description, price, cost, stock, image, category, featured, variants, variant_style, created_at)
+      VALUES (${id}, ${slug}, ${input.name}, ${input.description}, ${input.price}, ${cost}, ${input.stock}, ${input.image}, ${input.category}, ${input.featured}, ${JSON.stringify(variants)}::jsonb, ${variantStyle}, ${createdAt})`;
+    return { ...input, cost, variants, variantStyle, slug, id, createdAt };
   },
   async updateProduct(id: string, patch: Partial<Product>): Promise<Product | undefined> {
     await ready();
     const cur = await db.getProduct(id);
     if (!cur) return undefined;
     const p = { ...cur, ...patch, id };
-    await sql`UPDATE products SET slug=${p.slug}, name=${p.name}, description=${p.description}, price=${p.price},
+    await sql`UPDATE products SET slug=${p.slug}, name=${p.name}, description=${p.description}, price=${p.price}, cost=${p.cost || 0},
       stock=${p.stock}, image=${p.image}, category=${p.category}, featured=${p.featured}, variants=${JSON.stringify(p.variants || [])}::jsonb, variant_style=${p.variantStyle || 'image'} WHERE id=${id}`;
     return p;
   },
@@ -413,9 +422,13 @@ export const db = {
     await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
     return db.getOrder(id);
   },
-  async updateOrderPathaoConsignment(id: string, consignmentId: string): Promise<void> {
+  async updateOrderPathaoConsignment(id: string, consignmentId: string, deliveryFee?: number): Promise<void> {
     await ready();
-    await sql`UPDATE orders SET pathao_consignment_id = ${consignmentId} WHERE id = ${id}`;
+    if (deliveryFee != null) {
+      await sql`UPDATE orders SET pathao_consignment_id = ${consignmentId}, pathao_delivery_fee = ${deliveryFee} WHERE id = ${id}`;
+    } else {
+      await sql`UPDATE orders SET pathao_consignment_id = ${consignmentId} WHERE id = ${id}`;
+    }
   },
   async deleteOrder(id: string): Promise<boolean> {
     await ready();
@@ -556,7 +569,7 @@ export const db = {
       contact_email=${c.contactEmail}, contact_phone=${c.contactPhone}, contact_address=${c.contactAddress},
       shipping_fee=${c.shippingFee}, free_shipping_over=${c.freeShippingOver},
       hero_image=${c.heroImage}, hero_headline=${c.heroHeadline}, hero_subheadline=${c.heroSubheadline},
-      hero_cta_text=${c.heroCtaText}, hero_cta_link=${c.heroCtaLink}
+      hero_cta_text=${c.heroCtaText}, hero_cta_link=${c.heroCtaLink}, return_fee=${c.returnFee}
       WHERE id = 1`;
     return c;
   },

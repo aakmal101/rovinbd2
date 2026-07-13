@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       itemWeight: 0.5,
     });
     if (result.ok) {
-      await db.updateOrderPathaoConsignment(order.id, result.consignmentId);
+      await db.updateOrderPathaoConsignment(order.id, result.consignmentId, result.deliveryFee);
       results.push({ orderNumber: order.orderNumber, ok: true, consignmentId: result.consignmentId });
     } else {
       results.push({ orderNumber: order.orderNumber, ok: false, error: result.error });
