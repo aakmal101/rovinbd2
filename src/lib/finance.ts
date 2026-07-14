@@ -11,6 +11,7 @@ export type FinanceOrderRow = {
   deliveryFee: number;
   deliveryFeeIsEstimate: boolean;
   deliveryProfit: number;
+  returnDeduction: number;
   pathaoConsignmentId: string | null;
   createdAt: number;
 };
@@ -27,13 +28,12 @@ export type FinanceSummary = {
   paidReturnCount: number;
   pendingCount: number;
   pendingValue: number;
-  returnFeePerOrder: number;
 };
 
 export function computeFinance(
   allOrders: Order[],
   products: Product[],
-  content: SiteContent,
+  _content: SiteContent,
   from = 0,
   to = Infinity,
 ): { summary: FinanceSummary; orders: FinanceOrderRow[] } {
@@ -59,6 +59,7 @@ export function computeFinance(
 
     let rowRevenue = 0;
     let rowCogs = 0;
+    let rowReturnDeduction = 0;
 
     if (o.status === 'received') {
       deliveredCount++;
@@ -71,17 +72,21 @@ export function computeFinance(
       deliveryProfit += rowDeliveryProfit;
     } else if (o.status === 'returned') {
       returnedCount++;
-      deliveryCost += deliveryFee;
-      // "Paid Return": Pathao still collected some amount even though the parcel came back —
-      // that's real revenue. Goods are assumed to return to stock, so no COGS charged.
-      if (o.pathaoCollectedAmount) {
-        rowRevenue = o.pathaoCollectedAmount;
+      const isPaidReturn = !!o.pathaoCollectedAmount;
+      if (isPaidReturn) {
+        // Paid Return: Pathao still collected some amount even though the parcel came back —
+        // that's real revenue. Goods return to stock, so no COGS. Out-of-pocket cost is just
+        // 50% of the delivery fee.
+        rowRevenue = o.pathaoCollectedAmount!;
         revenue += rowRevenue;
         paidReturnCount++;
+        rowReturnDeduction = deliveryFee * 0.5;
+      } else {
+        // Plain return: nothing collected. Out-of-pocket cost is the delivery fee plus a
+        // 50% return fee (i.e. 1.5x the delivery fee).
+        rowReturnDeduction = deliveryFee * 1.5;
       }
-      // Once we have Pathao's real fee for this leg, it already reflects the true cost —
-      // don't also apply the flat estimated return fee on top.
-      if (!hasRealFee) returnCost += content.returnFee;
+      returnCost += rowReturnDeduction;
     } else {
       pendingCount++;
       pendingValue += o.total;
@@ -98,6 +103,7 @@ export function computeFinance(
       deliveryFee,
       deliveryFeeIsEstimate: !hasRealFee,
       deliveryProfit: rowDeliveryProfit,
+      returnDeduction: rowReturnDeduction,
       pathaoConsignmentId: o.pathaoConsignmentId || null,
       createdAt: o.createdAt,
     };
@@ -109,7 +115,6 @@ export function computeFinance(
     summary: {
       revenue, cogs, deliveryCost, deliveryProfit, returnCost, netProfit,
       deliveredCount, returnedCount, paidReturnCount, pendingCount, pendingValue,
-      returnFeePerOrder: content.returnFee,
     },
     orders: rows.sort((a, b) => b.createdAt - a.createdAt),
   };

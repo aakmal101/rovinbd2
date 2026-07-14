@@ -162,7 +162,7 @@ export default function FinanceView({ initial }: { initial: FinanceData }) {
           sub="Charged to customer minus Pathao's actual fee"
           highlight={summary.deliveryProfit >= 0 ? 'green' : 'red'}
         />
-        <SummaryCard label="Return cost" value={'-' + formatPrice(summary.returnCost)} sub={`Estimated only, for returns without a real Pathao fee yet`} />
+        <SummaryCard label="Return cost" value={'-' + formatPrice(summary.returnCost)} sub={`Return: 1.5× delivery fee · Paid return: 0.5× delivery fee`} />
         <SummaryCard
           label="Net profit"
           value={formatPrice(summary.netProfit)}
