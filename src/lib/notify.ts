@@ -84,9 +84,5 @@ export async function notifySmsAdmin(order: Order): Promise<void> {
 }
 
 export async function notifyOrderPlaced(order: Order): Promise<void> {
-  await Promise.all([
-    notifyTelegram(order),
-    notifySmsCustomer(order),
-    notifySmsAdmin(order),
-  ]);
+  await notifyTelegram(order);
 }
