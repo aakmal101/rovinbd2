@@ -430,6 +430,22 @@ export const db = {
     await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
     return db.getOrder(id);
   },
+  async restockOrderItems(items: Order['items']): Promise<void> {
+    await ready();
+    for (const item of items) {
+      if (item.variantId) {
+        const product = await db.getProduct(item.productId);
+        if (product && product.variants.length > 0) {
+          const nextVariants = product.variants.map((v) =>
+            v.id === item.variantId ? { ...v, stock: v.stock + item.qty } : v,
+          );
+          await sql`UPDATE products SET variants=${JSON.stringify(nextVariants)}::jsonb WHERE id = ${item.productId}`;
+          continue;
+        }
+      }
+      await sql`UPDATE products SET stock = stock + ${item.qty} WHERE id = ${item.productId}`;
+    }
+  },
   async clearOrderPathaoLink(id: string): Promise<void> {
     await ready();
     await sql`UPDATE orders SET pathao_consignment_id = NULL, pathao_delivery_fee = NULL, pathao_collected_amount = NULL WHERE id = ${id}`;

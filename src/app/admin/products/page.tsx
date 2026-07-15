@@ -4,6 +4,7 @@ import { formatPrice } from '@/lib/format';
 import DeleteButton from './DeleteButton';
 import MigrateVariantsButton from './MigrateVariantsButton';
 import BulkSetCostButton from './BulkSetCostButton';
+import SyncReturnsButton from './SyncReturnsButton';
 
 export default async function ProductsAdmin() {
   const [products, categories] = await Promise.all([db.listProducts(), db.listProductCategories()]);
@@ -19,6 +20,7 @@ export default async function ProductsAdmin() {
           <Link href="/admin/products/new" className="btn btn-primary">+ Add Product</Link>
           <MigrateVariantsButton />
           <BulkSetCostButton />
+          <SyncReturnsButton />
         </div>
       </div>
 

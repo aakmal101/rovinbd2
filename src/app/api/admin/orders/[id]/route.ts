@@ -50,7 +50,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   // Status-driven CAPI: only fire when transitioning into the new state
   if (before && before.status !== newStatus) {
     if (newStatus === 'received') await fireStatusCapi(req, updated, 'PurchaseConfirmed');
-    else if (newStatus === 'returned') await fireStatusCapi(req, updated, 'Refunded');
+    else if (newStatus === 'returned') {
+      await fireStatusCapi(req, updated, 'Refunded');
+      await db.restockOrderItems(updated.items);
+    }
   }
 
   return NextResponse.json(updated);

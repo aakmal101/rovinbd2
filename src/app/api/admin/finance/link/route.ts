@@ -20,7 +20,10 @@ export async function POST(req: Request) {
 
   await db.updateOrderPathaoConsignment(order.id, consignmentId, Number.isFinite(fee) ? fee : undefined);
   if (Number.isFinite(collectedAmount)) await db.updateOrderCollectedAmount(order.id, collectedAmount!);
-  if (status && status !== order.status) await db.updateOrderStatus(order.id, status);
+  if (status && status !== order.status) {
+    await db.updateOrderStatus(order.id, status);
+    if (status === 'returned') await db.restockOrderItems(order.items);
+  }
 
   return NextResponse.json({ ok: true, orderNumber: order.orderNumber, consignmentId, fee, status: status || order.status });
 }
