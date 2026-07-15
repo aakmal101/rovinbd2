@@ -430,6 +430,10 @@ export const db = {
     await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
     return db.getOrder(id);
   },
+  async clearOrderPathaoLink(id: string): Promise<void> {
+    await ready();
+    await sql`UPDATE orders SET pathao_consignment_id = NULL, pathao_delivery_fee = NULL, pathao_collected_amount = NULL WHERE id = ${id}`;
+  },
   async updateOrderDeliveryFee(id: string, deliveryFee: number): Promise<void> {
     await ready();
     await sql`UPDATE orders SET pathao_delivery_fee = ${deliveryFee} WHERE id = ${id}`;
