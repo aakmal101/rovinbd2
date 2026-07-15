@@ -44,7 +44,7 @@ export async function notifyTelegram(order: Order): Promise<void> {
   }
 }
 
-export async function notifySmsCustomer(order: Order): Promise<void> {
+export async function notifySmsCustomer(order: Order): Promise<{ ok: boolean; error?: string }> {
   const firstName = order.customerName.trim().split(/\s+/)[0];
   const itemLines = order.items
     .map((i) => `${i.name}${i.variantName ? ` (${i.variantName})` : ''} x${i.qty}`)
@@ -64,6 +64,7 @@ export async function notifySmsCustomer(order: Order): Promise<void> {
     status: result.ok ? 'sent' : 'failed',
     error: result.ok ? undefined : result.error,
   });
+  return result;
 }
 
 export async function notifySmsAdmin(order: Order): Promise<void> {

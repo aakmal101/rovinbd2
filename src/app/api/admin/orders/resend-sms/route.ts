@@ -18,14 +18,16 @@ export async function POST(req: Request) {
   const orders = (await db.listOrders()).filter((o) => o.orderNumber >= from && o.orderNumber <= to);
 
   let sent = 0;
+  const failed: { orderNumber: number; error?: string }[] = [];
   for (const order of orders) {
-    await notifySmsCustomer(order);
-    sent++;
+    const result = await notifySmsCustomer(order);
+    if (result.ok) sent++;
+    else failed.push({ orderNumber: order.orderNumber, error: result.error });
   }
 
   const foundNumbers = new Set(orders.map((o) => o.orderNumber));
   const missing: number[] = [];
   for (let n = from; n <= to; n++) if (!foundNumbers.has(n)) missing.push(n);
 
-  return NextResponse.json({ sent, missing });
+  return NextResponse.json({ sent, failed, missing });
 }
