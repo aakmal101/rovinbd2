@@ -40,6 +40,7 @@ export default function StoreFooter({
           <div className="font-semibold mb-2">Shop</div>
           <ul className="space-y-1 text-stone-600">
             <li><Link href="/shop" className="hover:text-brand-600">All Bandanas</Link></li>
+            <li><Link href="/categories" className="hover:text-brand-600">Categories</Link></li>
             <li><Link href="/about" className="hover:text-brand-600">About</Link></li>
             <li><Link href="/contact" className="hover:text-brand-600">Contact</Link></li>
             <li><Link href="/admin" className="hover:text-brand-600">Admin</Link></li>

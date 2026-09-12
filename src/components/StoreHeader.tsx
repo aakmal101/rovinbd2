@@ -27,6 +27,7 @@ export default function StoreHeader({ siteName }: { siteName: string }) {
     <>
       <Link href="/" className="hover:text-brand-600" onClick={() => setMenuOpen(false)}>Home</Link>
       <Link href="/shop" className="hover:text-brand-600" onClick={() => setMenuOpen(false)}>Shop</Link>
+      <Link href="/categories" className="hover:text-brand-600" onClick={() => setMenuOpen(false)}>Categories</Link>
       <Link href="/about" className="hover:text-brand-600" onClick={() => setMenuOpen(false)}>About</Link>
       <Link href="/contact" className="hover:text-brand-600" onClick={() => setMenuOpen(false)}>Contact</Link>
     </>
@@ -83,6 +84,7 @@ export default function StoreHeader({ siteName }: { siteName: string }) {
           <SearchBar className="mb-2" onNavigate={() => setMenuOpen(false)} />
           <Link href="/" className="py-2 hover:text-brand-600" onClick={() => setMenuOpen(false)}>Home</Link>
           <Link href="/shop" className="py-2 hover:text-brand-600" onClick={() => setMenuOpen(false)}>Shop</Link>
+          <Link href="/categories" className="py-2 hover:text-brand-600" onClick={() => setMenuOpen(false)}>Categories</Link>
           <Link href="/about" className="py-2 hover:text-brand-600" onClick={() => setMenuOpen(false)}>About</Link>
           <Link href="/contact" className="py-2 hover:text-brand-600" onClick={() => setMenuOpen(false)}>Contact</Link>
         </nav>
